@@ -1,0 +1,1338 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../lib/generated/prisma"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model activities {
+  id                BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id           BigInt?           @db.UnsignedBigInt
+  investor_id       BigInt?           @db.UnsignedBigInt
+  representative_id BigInt?           @db.UnsignedBigInt
+  user_id           BigInt?           @db.UnsignedBigInt
+  type              activities_type
+  subject           String?           @db.VarChar(255)
+  description       String?           @db.Text
+  status            activities_status @default(pending)
+  scheduled_at      DateTime?         @db.Timestamp(0)
+  completed_at      DateTime?         @db.Timestamp(0)
+  activity_date     DateTime?         @db.Timestamp(0)
+  created_at        DateTime?         @db.Timestamp(0)
+  updated_at        DateTime?         @db.Timestamp(0)
+  investors         investors?        @relation(fields: [investor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "activities_investor_id_foreign")
+  leads             leads?            @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "activities_lead_id_foreign")
+  representatives   representatives?  @relation(fields: [representative_id], references: [id], onUpdate: NoAction, map: "activities_representative_id_foreign")
+  users             users?            @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "activities_user_id_foreign")
+
+  @@index([representative_id], map: "activities_representative_id_foreign")
+  @@index([completed_at], map: "idx_activities_completed")
+  @@index([created_at], map: "idx_activities_created_at")
+  @@index([investor_id], map: "idx_activities_investor")
+  @@index([investor_id, created_at], map: "idx_activities_investor_created")
+  @@index([lead_id], map: "idx_activities_lead")
+  @@index([lead_id, created_at], map: "idx_activities_lead_created")
+  @@index([scheduled_at], map: "idx_activities_scheduled")
+  @@index([status], map: "idx_activities_status")
+  @@index([type], map: "idx_activities_type")
+  @@index([user_id], map: "idx_activities_user")
+  @@index([user_id, created_at], map: "idx_activities_user_created")
+}
+
+model activity_types {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  name       String    @unique @db.VarChar(255)
+  label      String    @db.VarChar(255)
+  icon       String?   @db.VarChar(255)
+  color      String?   @db.VarChar(50)
+  is_active  Boolean   @default(true)
+  sort_order Int       @default(0)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+
+  @@index([is_active, sort_order], map: "idx_active_sort")
+}
+
+model announcements {
+  id         BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  title      String                 @db.VarChar(255)
+  content    String                 @db.Text
+  type       announcements_type     @default(info)
+  priority   announcements_priority @default(medium)
+  is_active  Boolean                @default(true)
+  expires_at DateTime?              @db.Timestamp(0)
+  created_by BigInt                 @db.UnsignedBigInt
+  created_at DateTime?              @db.Timestamp(0)
+  updated_at DateTime?              @db.Timestamp(0)
+
+  @@index([created_at, priority], map: "announcements_created_at_priority_index")
+  @@index([is_active, expires_at], map: "announcements_is_active_expires_at_index")
+}
+
+model automation_rules {
+  id               BigInt                          @id @default(autoincrement()) @db.UnsignedBigInt
+  name             String                          @db.VarChar(255)
+  description      String?                         @db.Text
+  rule_type        automation_rules_rule_type
+  trigger_event    automation_rules_trigger_event?
+  conditions       Json
+  actions          Json
+  priority         Int                             @default(1)
+  is_active        Boolean                         @default(true)
+  schedule_cron    String?                         @db.VarChar(255)
+  last_executed_at DateTime?                       @db.Timestamp(0)
+  execution_count  Int                             @default(0)
+  success_count    Int                             @default(0)
+  failure_count    Int                             @default(0)
+  metadata         Json?
+  created_by       BigInt                          @db.UnsignedBigInt
+  created_at       DateTime?                       @db.Timestamp(0)
+  updated_at       DateTime?                       @db.Timestamp(0)
+  users            users                           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "automation_rules_created_by_foreign")
+
+  @@index([created_by], map: "automation_rules_created_by_foreign")
+  @@index([is_active], map: "automation_rules_is_active_index")
+  @@index([is_active, rule_type], map: "automation_rules_is_active_rule_type_index")
+  @@index([priority], map: "automation_rules_priority_index")
+  @@index([rule_type], map: "automation_rules_rule_type_index")
+  @@index([trigger_event], map: "automation_rules_trigger_event_index")
+}
+
+model branches {
+  id              BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  name            String           @db.VarChar(255)
+  code            String           @unique(map: "branches_code_unique") @db.VarChar(255)
+  address         String?          @db.Text
+  phone           String?          @db.VarChar(255)
+  email           String?          @db.VarChar(255)
+  manager_id      BigInt?          @db.UnsignedBigInt
+  status          branches_status  @default(active)
+  created_at      DateTime?        @db.Timestamp(0)
+  updated_at      DateTime?        @db.Timestamp(0)
+  representatives representatives? @relation(fields: [manager_id], references: [id], onUpdate: NoAction, map: "branches_manager_id_foreign")
+
+  @@index([manager_id], map: "branches_manager_id_foreign")
+}
+
+model cache {
+  key        String @id @db.VarChar(255)
+  value      String @db.MediumText
+  expiration Int
+}
+
+model cache_locks {
+  key        String @id @db.VarChar(255)
+  owner      String @db.VarChar(255)
+  expiration Int
+}
+
+model export_configurations {
+  id          BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id     BigInt                     @db.UnsignedBigInt
+  name        String                     @db.VarChar(255)
+  type        export_configurations_type
+  fields      Json
+  description String?                    @db.Text
+  is_default  Boolean                    @default(false)
+  created_at  DateTime?                  @db.Timestamp(0)
+  updated_at  DateTime?                  @db.Timestamp(0)
+  users       users                      @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "export_configurations_user_id_foreign")
+
+  @@unique([user_id, name, type], map: "export_configurations_user_id_name_type_unique")
+  @@index([type], map: "export_configurations_type_index")
+  @@index([user_id], map: "export_configurations_user_id_index")
+}
+
+model export_jobs {
+  id                BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  job_id            String             @unique(map: "export_jobs_job_id_unique") @db.VarChar(255)
+  user_id           BigInt             @db.UnsignedBigInt
+  type              export_jobs_type
+  filters           Json?
+  fields            Json?
+  format            export_jobs_format
+  status            export_jobs_status @default(pending)
+  total_records     Int                @default(0)
+  processed_records Int                @default(0)
+  file_path         String?            @db.VarChar(255)
+  download_url      String?            @db.VarChar(255)
+  error_message     String?            @db.Text
+  started_at        DateTime?          @db.Timestamp(0)
+  completed_at      DateTime?          @db.Timestamp(0)
+  expires_at        DateTime?          @db.Timestamp(0)
+  created_at        DateTime?          @db.Timestamp(0)
+  updated_at        DateTime?          @db.Timestamp(0)
+  users             users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "export_jobs_user_id_foreign")
+
+  @@index([expires_at], map: "export_jobs_expires_at_index")
+  @@index([job_id], map: "export_jobs_job_id_index")
+  @@index([status], map: "export_jobs_status_index")
+  @@index([user_id], map: "export_jobs_user_id_index")
+}
+
+model failed_jobs {
+  id         BigInt   @id @default(autoincrement()) @db.UnsignedBigInt
+  uuid       String   @unique(map: "failed_jobs_uuid_unique") @db.VarChar(255)
+  connection String   @db.Text
+  queue      String   @db.Text
+  payload    String   @db.LongText
+  exception  String   @db.LongText
+  failed_at  DateTime @default(now()) @db.Timestamp(0)
+}
+
+model field_mapping_templates {
+  id          BigInt                       @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String                       @db.VarChar(255)
+  type        field_mapping_templates_type
+  mapping     Json
+  user_id     BigInt                       @db.UnsignedBigInt
+  is_default  Boolean                      @default(false)
+  description String?                      @db.Text
+  created_at  DateTime?                    @db.Timestamp(0)
+  updated_at  DateTime?                    @db.Timestamp(0)
+  users       users                        @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "field_mapping_templates_user_id_foreign")
+
+  @@index([is_default], map: "field_mapping_templates_is_default_index")
+  @@index([type, user_id], map: "field_mapping_templates_type_user_id_index")
+  @@index([user_id], map: "field_mapping_templates_user_id_foreign")
+}
+
+model import_errors {
+  id                BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  import_job_id     BigInt      @db.UnsignedBigInt
+  row_number        Int
+  row_data          Json
+  error_type        String      @db.VarChar(255)
+  error_message     String      @db.Text
+  validation_errors Json?
+  is_retryable      Boolean     @default(true)
+  is_retried        Boolean     @default(false)
+  created_at        DateTime?   @db.Timestamp(0)
+  updated_at        DateTime?   @db.Timestamp(0)
+  import_jobs       import_jobs @relation(fields: [import_job_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "import_errors_import_job_id_foreign")
+
+  @@index([import_job_id], map: "import_errors_import_job_id_index")
+  @@index([is_retryable], map: "import_errors_is_retryable_index")
+}
+
+model import_export_logs {
+  id                 BigInt                         @id @default(autoincrement()) @db.UnsignedBigInt
+  type               import_export_logs_type
+  entity_type        import_export_logs_entity_type
+  user_id            BigInt                         @db.UnsignedBigInt
+  file_name          String?                        @db.VarChar(255)
+  file_size          BigInt?
+  total_records      Int                            @default(0)
+  successful_records Int                            @default(0)
+  failed_records     Int                            @default(0)
+  status             import_export_logs_status      @default(pending)
+  started_at         DateTime?                      @db.Timestamp(0)
+  completed_at       DateTime?                      @db.Timestamp(0)
+  file_path          String?                        @db.VarChar(255)
+  error_file_path    String?                        @db.VarChar(255)
+  metadata           Json?
+  created_at         DateTime?                      @db.Timestamp(0)
+  updated_at         DateTime?                      @db.Timestamp(0)
+  users              users                          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "import_export_logs_user_id_foreign")
+  import_failures    import_failures[]
+
+  @@index([started_at], map: "import_export_logs_started_at_index")
+  @@index([status, created_at], map: "import_export_logs_status_created_at_index")
+  @@index([type, entity_type], map: "import_export_logs_type_entity_type_index")
+  @@index([user_id, created_at], map: "import_export_logs_user_id_created_at_index")
+}
+
+model import_failures {
+  id                   BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  import_export_log_id BigInt             @db.UnsignedBigInt
+  row_number           Int
+  data                 Json
+  error_message        String             @db.Text
+  created_at           DateTime           @db.Timestamp(0)
+  import_export_logs   import_export_logs @relation(fields: [import_export_log_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "import_failures_import_export_log_id_foreign")
+
+  @@index([import_export_log_id], map: "import_failures_import_export_log_id_index")
+  @@index([import_export_log_id, row_number], map: "import_failures_import_export_log_id_row_number_index")
+}
+
+model import_jobs {
+  id              BigInt             @id @default(autoincrement()) @db.UnsignedBigInt
+  job_id          String             @unique(map: "import_jobs_job_id_unique") @db.VarChar(255)
+  type            import_jobs_type
+  file_path       String             @db.VarChar(255)
+  field_mapping   Json
+  status          import_jobs_status @default(pending)
+  total_rows      Int                @default(0)
+  processed_rows  Int                @default(0)
+  successful_rows Int                @default(0)
+  failed_rows     Int                @default(0)
+  duplicate_rows  Int                @default(0)
+  progress        Decimal            @default(0.00) @db.Decimal(5, 2)
+  started_at      DateTime?          @db.Timestamp(0)
+  completed_at    DateTime?          @db.Timestamp(0)
+  summary         Json?
+  error_message   String?            @db.Text
+  user_id         BigInt             @db.UnsignedBigInt
+  created_at      DateTime?          @db.Timestamp(0)
+  updated_at      DateTime?          @db.Timestamp(0)
+  import_errors   import_errors[]
+  users           users              @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "import_jobs_user_id_foreign")
+
+  @@index([job_id], map: "import_jobs_job_id_index")
+  @@index([status], map: "import_jobs_status_index")
+  @@index([user_id], map: "import_jobs_user_id_index")
+}
+
+model investor_categories {
+  id          BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String                     @db.VarChar(255)
+  slug        String                     @unique(map: "investor_categories_slug_unique") @db.VarChar(255)
+  description String?                    @db.Text
+  color       String                     @default("#6c757d") @db.VarChar(7)
+  status      investor_categories_status @default(active)
+  sort_order  Int                        @default(0)
+  created_at  DateTime?                  @db.Timestamp(0)
+  updated_at  DateTime?                  @db.Timestamp(0)
+
+  @@index([slug], map: "investor_categories_slug_index")
+  @@index([status, sort_order], map: "investor_categories_status_sort_order_index")
+}
+
+model investor_field_options {
+  id                BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  investor_field_id BigInt          @db.UnsignedBigInt
+  value             String          @db.VarChar(255)
+  label             String          @db.VarChar(255)
+  sort_order        Int             @default(0)
+  is_active         Boolean         @default(true)
+  created_at        DateTime?       @db.Timestamp(0)
+  updated_at        DateTime?       @db.Timestamp(0)
+  investor_fields   investor_fields @relation(fields: [investor_field_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "investor_field_options_investor_field_id_foreign")
+
+  @@unique([investor_field_id, value], map: "investor_field_options_investor_field_id_value_unique")
+}
+
+model investor_field_values {
+  id                BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  investor_id       BigInt          @db.UnsignedBigInt
+  investor_field_id BigInt          @db.UnsignedBigInt
+  value             String?         @db.Text
+  created_at        DateTime?       @db.Timestamp(0)
+  updated_at        DateTime?       @db.Timestamp(0)
+  investor_fields   investor_fields @relation(fields: [investor_field_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "investor_field_values_investor_field_id_foreign")
+  investors         investors       @relation(fields: [investor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "investor_field_values_investor_id_foreign")
+
+  @@unique([investor_id, investor_field_id], map: "investor_field_values_investor_id_investor_field_id_unique")
+  @@index([investor_field_id], map: "investor_field_values_investor_field_id_foreign")
+}
+
+model investor_fields {
+  id                     BigInt                   @id @default(autoincrement()) @db.UnsignedBigInt
+  name                   String                   @unique(map: "investor_fields_name_unique") @db.VarChar(255)
+  label                  String                   @db.VarChar(255)
+  type                   investor_fields_type     @default(text)
+  is_required            Boolean                  @default(false)
+  is_active              Boolean                  @default(true)
+  is_system_field        Boolean                  @default(false)
+  sort_order             Int                      @default(0)
+  section_key            String?                  @db.VarChar(255)
+  placeholder            String?                  @db.Text
+  help_text              String?                  @db.Text
+  default_value          String?                  @db.Text
+  validation_rules       Json?
+  options                Json?
+  created_at             DateTime?                @db.Timestamp(0)
+  updated_at             DateTime?                @db.Timestamp(0)
+  investor_field_options investor_field_options[]
+  investor_field_values  investor_field_values[]
+}
+
+model investor_form_sections {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  section_key      String    @unique(map: "investor_form_sections_section_key_unique") @db.VarChar(255)
+  name             String    @db.VarChar(255)
+  is_visible       Boolean   @default(true)
+  is_default_open  Boolean   @default(true)
+  sort_order       Int       @default(0)
+  icon             String    @db.VarChar(255)
+  gradient         String    @db.VarChar(255)
+  created_at       DateTime? @db.Timestamp(0)
+  updated_at       DateTime? @db.Timestamp(0)
+
+  @@index([sort_order], map: "investor_form_sections_sort_order_index")
+}
+
+model investor_sources {
+  id          BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String                  @db.VarChar(255)
+  slug        String                  @unique(map: "investor_sources_slug_unique") @db.VarChar(255)
+  description String?                 @db.Text
+  color       String                  @default("#6c757d") @db.VarChar(7)
+  status      investor_sources_status @default(active)
+  sort_order  Int                     @default(0)
+  created_at  DateTime?               @db.Timestamp(0)
+  updated_at  DateTime?               @db.Timestamp(0)
+
+  @@index([slug], map: "investor_sources_slug_index")
+  @@index([status, sort_order], map: "investor_sources_status_sort_order_index")
+}
+
+model investors {
+  id                        BigInt                               @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id                   BigInt?                              @db.UnsignedBigInt
+  full_name                 String                               @db.VarChar(255)
+  email                     String                               @db.VarChar(255)
+  phone                     String?                              @unique(map: "investors_phone_unique") @db.VarChar(255)
+  company                   String?                              @db.VarChar(255)
+  position                  String?                              @db.VarChar(255)
+  website                   String?                              @db.VarChar(255)
+  industry                  String?                              @db.VarChar(255)
+  status                    String                               @default("potential") @db.VarChar(255)
+  priority                  String?                              @db.VarChar(50)
+  budget                    String?                              @db.VarChar(255)
+  timeline                  String?                              @db.VarChar(255)
+  notes                     String?                              @db.Text
+  important_notes           String?                              @db.Text
+  investment_preferences    String?                              @db.Text
+  risk_tolerance            investors_risk_tolerance?
+  communication_preferences investors_communication_preferences?
+  representative_id         BigInt?                              @db.UnsignedBigInt
+  source                    String                               @default("other") @db.VarChar(255)
+  last_activity_at          DateTime?                            @db.Timestamp(0)
+  activity_status           investors_activity_status            @default(active)
+  created_by                BigInt?                              @db.UnsignedBigInt
+  updated_by                BigInt?                              @db.UnsignedBigInt
+  created_at                DateTime?                            @db.Timestamp(0)
+  updated_at                DateTime?                            @db.Timestamp(0)
+  activities                activities[]
+  investor_field_values     investor_field_values[]
+  leads                     leads?                               @relation(fields: [lead_id], references: [id], onUpdate: NoAction, map: "investors_lead_id_foreign")
+
+  @@index([created_at], map: "idx_investors_created_at")
+  @@index([representative_id, status], map: "idx_investors_rep_status")
+  @@index([representative_id], map: "idx_investors_representative")
+  @@index([status], map: "idx_investors_status")
+  @@index([status, created_at], map: "idx_investors_status_created")
+  @@index([activity_status, last_activity_at], map: "investors_activity_status_last_activity_at_index")
+  @@index([email], map: "investors_email_index")
+  @@index([lead_id], map: "investors_lead_id_index")
+  @@index([phone], map: "investors_phone_index")
+  @@index([created_at], map: "investors_priority_created_at_index")
+  @@index([representative_id, created_at], map: "investors_representative_id_created_at_index")
+  @@index([source, created_at], map: "investors_source_created_at_index")
+  @@index([status, created_at], map: "investors_status_created_at_index")
+}
+
+model job_batches {
+  id             String  @id @db.VarChar(255)
+  name           String  @db.VarChar(255)
+  total_jobs     Int
+  pending_jobs   Int
+  failed_jobs    Int
+  failed_job_ids String  @db.LongText
+  options        String? @db.MediumText
+  cancelled_at   Int?
+  created_at     Int
+  finished_at    Int?
+}
+
+model jobs {
+  id           BigInt @id @default(autoincrement()) @db.UnsignedBigInt
+  queue        String @db.VarChar(255)
+  payload      String @db.LongText
+  attempts     Int    @db.UnsignedTinyInt
+  reserved_at  Int?   @db.UnsignedInt
+  available_at Int    @db.UnsignedInt
+  created_at   Int    @db.UnsignedInt
+
+  @@index([queue], map: "jobs_queue_index")
+}
+
+model kanban_configs {
+  id                 BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id            BigInt?   @db.UnsignedBigInt
+  name               String    @default("Default Board") @db.VarChar(255)
+  columns            Json?
+  swimlane_config    Json?
+  is_default         Boolean   @default(false)
+  show_wip_limits    Boolean   @default(true)
+  allow_wip_override Boolean   @default(false)
+  created_at         DateTime? @db.Timestamp(0)
+  updated_at         DateTime? @db.Timestamp(0)
+  users              users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "kanban_configs_user_id_foreign")
+
+  @@index([is_default], map: "kanban_configs_is_default_index")
+  @@index([user_id], map: "kanban_configs_user_id_index")
+}
+
+model lead_field_options {
+  id            BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_field_id BigInt      @db.UnsignedBigInt
+  value         String      @db.VarChar(255)
+  label         String      @db.VarChar(255)
+  sort_order    Int         @default(0)
+  is_active     Boolean     @default(true)
+  created_at    DateTime?   @db.Timestamp(0)
+  updated_at    DateTime?   @db.Timestamp(0)
+  lead_fields   lead_fields @relation(fields: [lead_field_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "lead_field_options_lead_field_id_foreign")
+
+  @@index([lead_field_id, is_active, sort_order], map: "lead_field_options_lead_field_id_is_active_sort_order_index")
+}
+
+model lead_field_values {
+  id            BigInt      @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id       BigInt      @db.UnsignedBigInt
+  lead_field_id BigInt      @db.UnsignedBigInt
+  value         String?     @db.Text
+  created_at    DateTime?   @db.Timestamp(0)
+  updated_at    DateTime?   @db.Timestamp(0)
+  lead_fields   lead_fields @relation(fields: [lead_field_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "lead_field_values_lead_field_id_foreign")
+  leads         leads       @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "lead_field_values_lead_id_foreign")
+
+  @@unique([lead_id, lead_field_id], map: "lead_field_values_lead_id_lead_field_id_unique")
+  @@index([lead_field_id], map: "lead_field_values_lead_field_id_index")
+}
+
+model lead_fields {
+  id                 BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  name               String               @unique(map: "lead_fields_name_unique") @db.VarChar(255)
+  label              String               @db.VarChar(255)
+  type               lead_fields_type     @default(text)
+  is_required        Boolean              @default(false)
+  is_active          Boolean              @default(true)
+  is_system_field    Boolean              @default(false)
+  sort_order         Int                  @default(0)
+  section_key        String?              @db.VarChar(255)
+  placeholder        String?              @db.VarChar(255)
+  help_text          String?              @db.Text
+  default_value      String?              @db.VarChar(255)
+  validation_rules   Json?
+  options            Json?
+  created_at         DateTime?            @db.Timestamp(0)
+  updated_at         DateTime?            @db.Timestamp(0)
+  lead_field_options lead_field_options[]
+  lead_field_values  lead_field_values[]
+
+  @@index([is_active, sort_order], map: "lead_fields_is_active_sort_order_index")
+  @@index([section_key], map: "lead_fields_section_key_index")
+}
+
+model lead_form_sections {
+  id               BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  section_key      String    @unique(map: "lead_form_sections_section_key_unique") @db.VarChar(255)
+  name             String    @db.VarChar(255)
+  is_visible       Boolean   @default(true)
+  is_default_open  Boolean   @default(true)
+  sort_order       Int       @default(0)
+  icon             String    @db.VarChar(255)
+  gradient         String    @db.VarChar(255)
+  created_at       DateTime? @db.Timestamp(0)
+  updated_at       DateTime? @db.Timestamp(0)
+
+  @@index([sort_order], map: "lead_form_sections_sort_order_index")
+}
+
+model lead_performance_metrics {
+  id                BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  metric_date       DateTime  @db.Date
+  metric_type       String    @db.VarChar(255)
+  metrics_data      Json
+  representative_id BigInt?   @db.UnsignedBigInt
+  source            String?   @db.VarChar(255)
+  created_at        DateTime? @db.Timestamp(0)
+  updated_at        DateTime? @db.Timestamp(0)
+  users             users?    @relation(fields: [representative_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "lead_performance_metrics_representative_id_foreign")
+
+  @@index([metric_date, metric_type], map: "lead_performance_metrics_metric_date_metric_type_index")
+  @@index([representative_id, metric_date], map: "lead_performance_metrics_representative_id_metric_date_index")
+  @@index([source, metric_date], map: "lead_performance_metrics_source_metric_date_index")
+}
+
+model lead_sources {
+  id          BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String              @db.VarChar(255)
+  slug        String              @unique(map: "lead_sources_slug_unique") @db.VarChar(255)
+  description String?             @db.Text
+  color       String              @default("#6c757d") @db.VarChar(255)
+  status      lead_sources_status @default(active)
+  sort_order  Int                 @default(0)
+  created_at  DateTime?           @db.Timestamp(0)
+  updated_at  DateTime?           @db.Timestamp(0)
+}
+
+model lead_statuses {
+  id          BigInt               @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String               @db.VarChar(255)
+  slug        String               @unique(map: "lead_statuses_slug_unique") @db.VarChar(255)
+  description String?              @db.Text
+  color       String               @default("#6c757d") @db.VarChar(255)
+  status      lead_statuses_status @default(active)
+  sort_order  Int                  @default(0)
+  is_final    Boolean              @default(false)
+  created_at  DateTime?            @db.Timestamp(0)
+  updated_at  DateTime?            @db.Timestamp(0)
+}
+
+model leads {
+  id                BigInt              @id @default(autoincrement()) @db.UnsignedBigInt
+  full_name         String              @db.VarChar(255)
+  email             String              @unique(map: "leads_email_unique") @db.VarChar(255)
+  phone             String              @unique(map: "leads_phone_unique") @db.VarChar(255)
+  source            String              @default("website") @db.VarChar(50)
+  status            String              @default("new") @db.VarChar(50)
+  representative_id BigInt?             @db.UnsignedBigInt
+  priority          String?             @db.VarChar(50)
+  notes_text        String?             @db.Text @map("notes")
+  activity_id       BigInt?             @db.UnsignedBigInt
+  last_activity_at  DateTime?           @db.Timestamp(0)
+  created_at        DateTime?           @db.Timestamp(0)
+  updated_at        DateTime?           @db.Timestamp(0)
+  activities        activities[]
+  investors         investors[]
+  lead_field_values lead_field_values[]
+  notes             notes[]
+
+  @@index([created_at], map: "idx_leads_created_at")
+  @@index([representative_id, status], map: "idx_leads_rep_status")
+  @@index([representative_id], map: "idx_leads_representative")
+  @@index([status], map: "idx_leads_status")
+  @@index([status, created_at], map: "idx_leads_status_created")
+  @@index([created_at, status], map: "leads_created_at_status_index")
+  @@index([priority, status], map: "leads_priority_status_index")
+  @@index([representative_id, status], map: "leads_representative_id_status_index")
+  @@index([source, created_at], map: "leads_source_created_at_index")
+  @@index([status, created_at], map: "leads_status_created_at_index")
+}
+
+model migrations {
+  id        Int    @id @default(autoincrement()) @db.UnsignedInt
+  migration String @db.VarChar(255)
+  batch     Int
+}
+
+model model_has_permissions {
+  permission_id BigInt      @db.UnsignedBigInt
+  model_type    String      @db.VarChar(255)
+  model_id      BigInt      @db.UnsignedBigInt
+  permissions   permissions @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "model_has_permissions_permission_id_foreign")
+
+  @@id([permission_id, model_id, model_type])
+  @@index([model_id, model_type], map: "model_has_permissions_model_id_model_type_index")
+}
+
+model model_has_roles {
+  role_id      BigInt       @db.UnsignedBigInt
+  model_type   String       @db.VarChar(255)
+  model_id     BigInt       @db.UnsignedBigInt
+  spatie_roles spatie_roles @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "model_has_roles_role_id_foreign")
+
+  @@id([role_id, model_id, model_type])
+  @@index([model_id, model_type], map: "model_has_roles_model_id_model_type_index")
+}
+
+model notes {
+  id                BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id           BigInt           @db.UnsignedBigInt
+  representative_id BigInt?          @db.UnsignedBigInt
+  title             String           @db.VarChar(255)
+  content           String           @db.Text
+  type              notes_type       @default(general)
+  is_private        Boolean          @default(false)
+  created_at        DateTime?        @db.Timestamp(0)
+  updated_at        DateTime?        @db.Timestamp(0)
+  leads             leads            @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notes_lead_id_foreign")
+  representatives   representatives? @relation("representative_notes", fields: [representative_id], references: [id], onUpdate: NoAction, map: "notes_representative_id_foreign")
+
+  @@index([lead_id], map: "notes_lead_id_foreign")
+  @@index([representative_id], map: "notes_representative_id_foreign")
+}
+
+model notifications {
+  id              String    @id @db.Char(36)
+  type            String    @db.VarChar(255)
+  notifiable_type String    @db.VarChar(255)
+  notifiable_id   BigInt    @db.UnsignedBigInt
+  data            String    @db.Text
+  read_at         DateTime? @db.Timestamp(0)
+  created_at      DateTime? @db.Timestamp(0)
+  updated_at      DateTime? @db.Timestamp(0)
+
+  @@index([created_at], map: "notifications_created_at_index")
+  @@index([notifiable_type, notifiable_id], map: "notifications_notifiable_type_notifiable_id_index")
+  @@index([read_at], map: "notifications_read_at_index")
+}
+
+model password_reset_tokens {
+  email      String    @id @db.VarChar(255)
+  token      String    @db.VarChar(255)
+  created_at DateTime? @db.Timestamp(0)
+}
+
+model permissions {
+  id                    BigInt                  @id @default(autoincrement()) @db.UnsignedBigInt
+  name                  String                  @db.VarChar(255)
+  guard_name            String                  @db.VarChar(255)
+  created_at            DateTime?               @db.Timestamp(0)
+  updated_at            DateTime?               @db.Timestamp(0)
+  model_has_permissions model_has_permissions[]
+  role_has_permissions  role_has_permissions[]
+
+  @@unique([name, guard_name], map: "permissions_name_guard_name_unique")
+}
+
+model personal_access_tokens {
+  id             BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  tokenable_type String    @db.VarChar(255)
+  tokenable_id   BigInt    @db.UnsignedBigInt
+  name           String    @db.Text
+  token          String    @unique(map: "personal_access_tokens_token_unique") @db.VarChar(64)
+  abilities      String?   @db.Text
+  last_used_at   DateTime? @db.Timestamp(0)
+  expires_at     DateTime? @db.Timestamp(0)
+  created_at     DateTime? @db.Timestamp(0)
+  updated_at     DateTime? @db.Timestamp(0)
+
+  @@index([expires_at], map: "personal_access_tokens_expires_at_index")
+  @@index([tokenable_type, tokenable_id], map: "personal_access_tokens_tokenable_type_tokenable_id_index")
+}
+
+model representatives {
+  id         BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  first_name String                 @db.VarChar(255)
+  last_name  String                 @db.VarChar(255)
+  email      String                 @unique(map: "representatives_email_unique") @db.VarChar(255)
+  phone      String?                @db.VarChar(255)
+  position   String?                @db.VarChar(255)
+  department String?                @db.VarChar(255)
+  status     representatives_status @default(active)
+  notes_text String?                @db.Text @map("notes")
+  created_at DateTime?              @db.Timestamp(0)
+  updated_at DateTime?              @db.Timestamp(0)
+  activities activities[]
+  branches   branches[]
+  notes_rel  notes[]                @relation("representative_notes")
+}
+
+model role_has_permissions {
+  permission_id BigInt       @db.UnsignedBigInt
+  role_id       BigInt       @db.UnsignedBigInt
+  permissions   permissions  @relation(fields: [permission_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "role_has_permissions_permission_id_foreign")
+  spatie_roles  spatie_roles @relation(fields: [role_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "role_has_permissions_role_id_foreign")
+
+  @@id([permission_id, role_id])
+  @@index([role_id], map: "role_has_permissions_role_id_foreign")
+}
+
+model roles {
+  id          BigInt       @id @default(autoincrement()) @db.UnsignedBigInt
+  name        String       @db.VarChar(255)
+  slug        String       @unique(map: "roles_slug_unique") @db.VarChar(255)
+  description String?      @db.Text
+  permissions Json?
+  status      roles_status @default(active)
+  created_at  DateTime?    @db.Timestamp(0)
+  updated_at  DateTime?    @db.Timestamp(0)
+}
+
+model sessions {
+  id            String  @id @db.VarChar(255)
+  user_id       BigInt? @db.UnsignedBigInt
+  ip_address    String? @db.VarChar(45)
+  user_agent    String? @db.Text
+  payload       String  @db.LongText
+  last_activity Int
+
+  @@index([last_activity], map: "sessions_last_activity_index")
+  @@index([user_id], map: "sessions_user_id_index")
+}
+
+model spatie_roles {
+  id                   BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
+  name                 String                 @db.VarChar(255)
+  guard_name           String                 @db.VarChar(255)
+  created_at           DateTime?              @db.Timestamp(0)
+  updated_at           DateTime?              @db.Timestamp(0)
+  model_has_roles      model_has_roles[]
+  role_has_permissions role_has_permissions[]
+
+  @@unique([name, guard_name], map: "spatie_roles_name_guard_name_unique")
+}
+
+model task_assignment_history {
+  id                          BigInt                                @id @default(autoincrement()) @db.UnsignedBigInt
+  task_id                     BigInt                                @db.UnsignedBigInt
+  task_type                   String                                @db.VarChar(255)
+  task_priority               task_assignment_history_task_priority
+  task_complexity_score       Decimal                               @default(0.00) @db.Decimal(5, 2)
+  assigned_user_id            BigInt                                @db.UnsignedBigInt
+  user_current_workload       Int                                   @default(0)
+  assignment_timestamp        DateTime                              @db.Timestamp(0)
+  completion_timestamp        DateTime?                             @db.Timestamp(0)
+  performance_score           Decimal?                              @db.Decimal(5, 2)
+  was_reassigned              Boolean                               @default(false)
+  customer_satisfaction_score Decimal?                              @db.Decimal(5, 2)
+  assignment_method           String                                @default("manual") @db.VarChar(255)
+  ai_confidence_score         Decimal?                              @db.Decimal(5, 2)
+  assignment_factors          Json?
+  reassignment_reason         String?                               @db.Text
+  completion_time_hours       Int?
+  created_at                  DateTime?                             @db.Timestamp(0)
+  updated_at                  DateTime?                             @db.Timestamp(0)
+  users                       users                                 @relation(fields: [assigned_user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "task_assignment_history_assigned_user_id_foreign")
+  tasks                       tasks                                 @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "task_assignment_history_task_id_foreign")
+
+  @@index([assigned_user_id], map: "task_assignment_history_assigned_user_id_index")
+  @@index([assignment_method], map: "task_assignment_history_assignment_method_index")
+  @@index([assignment_timestamp], map: "task_assignment_history_assignment_timestamp_index")
+  @@index([task_id, assigned_user_id], map: "task_assignment_history_task_id_assigned_user_id_index")
+  @@index([task_id], map: "task_assignment_history_task_id_index")
+}
+
+model task_attachments {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  task_id     BigInt    @db.UnsignedBigInt
+  file_name   String    @db.VarChar(255)
+  file_path   String    @db.VarChar(255)
+  file_size   Int
+  mime_type   String    @db.VarChar(255)
+  uploaded_by BigInt    @db.UnsignedBigInt
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  tasks       tasks     @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "task_attachments_task_id_foreign")
+  users       users     @relation(fields: [uploaded_by], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "task_attachments_uploaded_by_foreign")
+
+  @@index([task_id], map: "task_attachments_task_id_index")
+  @@index([uploaded_by], map: "task_attachments_uploaded_by_index")
+}
+
+model task_comments {
+  id         BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  task_id    BigInt    @db.UnsignedBigInt
+  user_id    BigInt    @db.UnsignedBigInt
+  comment    String    @db.Text
+  mentions   Json?
+  is_system  Boolean   @default(false)
+  created_at DateTime? @db.Timestamp(0)
+  updated_at DateTime? @db.Timestamp(0)
+  tasks      tasks     @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "task_comments_task_id_foreign")
+  users      users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "task_comments_user_id_foreign")
+
+  @@index([created_at], map: "task_comments_created_at_index")
+  @@index([task_id], map: "task_comments_task_id_index")
+  @@index([user_id], map: "task_comments_user_id_index")
+}
+
+model task_entities {
+  id          BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  task_id     BigInt    @db.UnsignedBigInt
+  entity_type String    @db.VarChar(255)
+  entity_id   BigInt    @db.UnsignedBigInt
+  created_at  DateTime? @db.Timestamp(0)
+  updated_at  DateTime? @db.Timestamp(0)
+  tasks       tasks     @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "task_entities_task_id_foreign")
+
+  @@unique([task_id, entity_type, entity_id], map: "task_entities_task_id_entity_type_entity_id_unique")
+  @@index([entity_type, entity_id], map: "task_entities_entity_type_entity_id_index")
+  @@index([task_id], map: "task_entities_task_id_index")
+}
+
+model task_templates {
+  id                    BigInt                          @id @default(autoincrement()) @db.UnsignedBigInt
+  name                  String                          @db.VarChar(255)
+  description           String?                         @db.Text
+  category              String                          @db.VarChar(255)
+  task_type             task_templates_task_type
+  default_priority      task_templates_default_priority @default(medium)
+  default_duration_days Int?
+  default_tags          Json?
+  checklist_items       Json?
+  required_fields       Json?
+  automation_triggers   Json?
+  is_active             Boolean                         @default(true)
+  usage_count           Int                             @default(0)
+  avg_completion_time   Decimal?                        @db.Decimal(10, 2)
+  success_rate          Decimal?                        @db.Decimal(5, 2)
+  ai_recommended        Boolean                         @default(false)
+  metadata              Json?
+  created_by            BigInt                          @db.UnsignedBigInt
+  created_at            DateTime?                       @db.Timestamp(0)
+  updated_at            DateTime?                       @db.Timestamp(0)
+  users                 users                           @relation(fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "task_templates_created_by_foreign")
+  tasks                 tasks[]
+
+  @@index([ai_recommended], map: "task_templates_ai_recommended_index")
+  @@index([category], map: "task_templates_category_index")
+  @@index([created_by], map: "task_templates_created_by_foreign")
+  @@index([is_active, category], map: "task_templates_is_active_category_index")
+  @@index([is_active], map: "task_templates_is_active_index")
+  @@index([task_type], map: "task_templates_task_type_index")
+}
+
+model tasks {
+  id                              BigInt                    @id @default(autoincrement()) @db.UnsignedBigInt
+  title                           String                    @db.VarChar(255)
+  description                     String?                   @db.Text
+  type                            tasks_type                @default(follow_up)
+  priority                        tasks_priority            @default(medium)
+  status                          tasks_status              @default(pending)
+  due_date                        DateTime?                 @db.DateTime(0)
+  reminder_date                   DateTime?                 @db.DateTime(0)
+  assigned_to                     BigInt?                   @db.UnsignedBigInt
+  created_by                      BigInt                    @db.UnsignedBigInt
+  completed_at                    DateTime?                 @db.DateTime(0)
+  completed_by                    BigInt?                   @db.UnsignedBigInt
+  is_recurring                    Boolean                   @default(false)
+  recurrence_pattern              Json?
+  processed_at                    DateTime?                 @db.Timestamp(0)
+  ai_generated                    Boolean                   @default(false)
+  ai_confidence_score             Decimal?                  @db.Decimal(5, 2)
+  complexity_score                Decimal                   @default(0.00) @db.Decimal(5, 2)
+  skill_requirements              Json?
+  auto_assigned                   Boolean                   @default(false)
+  reassignment_count              Int                       @default(0)
+  template_id                     BigInt?                   @db.UnsignedBigInt
+  assignment_method               String                    @default("manual") @db.VarChar(255)
+  auto_assigned_at                DateTime?                 @db.Timestamp(0)
+  ai_assignment_factors           Json?
+  predicted_completion_time       Decimal?                  @db.Decimal(10, 2)
+  escalation_risk_score           Decimal?                  @db.Decimal(5, 2)
+  tags                            Json?
+  metadata                        Json?
+  kanban_metadata                 Json?
+  order_index                     Int                       @default(0)
+  column_order                    Int                       @default(0)
+  kanban_column                   String                    @default("pending") @db.VarChar(255)
+  swimlane_group                  String?                   @db.VarChar(255)
+  created_at                      DateTime?                 @db.Timestamp(0)
+  updated_at                      DateTime?                 @db.Timestamp(0)
+  deleted_at                      DateTime?                 @db.Timestamp(0)
+  task_assignment_history         task_assignment_history[]
+  task_attachments                task_attachments[]
+  task_comments                   task_comments[]
+  task_entities                   task_entities[]
+  users_tasks_assigned_toTousers  users?                    @relation("tasks_assigned_toTousers", fields: [assigned_to], references: [id], onUpdate: NoAction, map: "tasks_assigned_to_foreign")
+  users_tasks_completed_byTousers users?                    @relation("tasks_completed_byTousers", fields: [completed_by], references: [id], onUpdate: NoAction, map: "tasks_completed_by_foreign")
+  users_tasks_created_byTousers   users                     @relation("tasks_created_byTousers", fields: [created_by], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "tasks_created_by_foreign")
+  task_templates                  task_templates?           @relation(fields: [template_id], references: [id], onUpdate: NoAction, map: "tasks_template_id_foreign")
+
+  @@index([ai_generated], map: "idx_tasks_ai_generated")
+  @@index([assigned_to], map: "idx_tasks_assigned")
+  @@index([assigned_to, status], map: "idx_tasks_assigned_status")
+  @@index([completed_at], map: "idx_tasks_completed_at")
+  @@index([created_at], map: "idx_tasks_created_at")
+  @@index([due_date], map: "idx_tasks_due_date")
+  @@index([priority], map: "idx_tasks_priority")
+  @@index([status], map: "idx_tasks_status")
+  @@index([status, due_date], map: "idx_tasks_status_due")
+  @@index([status, priority], map: "idx_tasks_status_priority")
+  @@index([assigned_to], map: "tasks_assigned_to_index")
+  @@index([assignment_method], map: "tasks_assignment_method_index")
+  @@index([auto_assigned], map: "tasks_auto_assigned_index")
+  @@index([completed_by], map: "tasks_completed_by_foreign")
+  @@index([complexity_score], map: "tasks_complexity_score_index")
+  @@index([created_by], map: "tasks_created_by_foreign")
+  @@index([due_date], map: "tasks_due_date_index")
+  @@index([kanban_column, column_order], map: "tasks_kanban_column_column_order_index")
+  @@index([kanban_column], map: "tasks_kanban_column_index")
+  @@index([priority], map: "tasks_priority_index")
+  @@index([processed_at], map: "tasks_processed_at_index")
+  @@index([status, assigned_to], map: "tasks_status_assigned_to_index")
+  @@index([status], map: "tasks_status_index")
+  @@index([swimlane_group], map: "tasks_swimlane_group_index")
+  @@index([template_id], map: "tasks_template_id_index")
+}
+
+model user_notification_preferences {
+  id                    BigInt                                         @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id               BigInt                                         @db.UnsignedBigInt
+  channel               String                                         @default("email") @db.VarChar(255)
+  task_assigned         Boolean                                        @default(true)
+  task_due_reminder     Boolean                                        @default(true)
+  task_overdue          Boolean                                        @default(true)
+  task_completed        Boolean                                        @default(true)
+  task_commented        Boolean                                        @default(true)
+  task_status_changed   Boolean                                        @default(true)
+  task_priority_changed Boolean                                        @default(true)
+  digest_frequency      user_notification_preferences_digest_frequency @default(none)
+  quiet_hours_start     DateTime?                                      @db.Time(0)
+  quiet_hours_end       DateTime?                                      @db.Time(0)
+  timezone              String                                         @default("UTC") @db.VarChar(255)
+  enabled               Boolean                                        @default(true)
+  created_at            DateTime?                                      @db.Timestamp(0)
+  updated_at            DateTime?                                      @db.Timestamp(0)
+  users                 users                                          @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_notification_preferences_user_id_foreign")
+
+  @@unique([user_id, channel], map: "user_notification_preferences_user_id_channel_unique")
+  @@index([user_id], map: "user_notification_preferences_user_id_index")
+}
+
+model user_skills {
+  id                  BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id             BigInt    @db.UnsignedBigInt
+  skill_category      String    @db.VarChar(255)
+  skill_name          String    @db.VarChar(255)
+  proficiency_level   Int       @default(1)
+  experience_count    Int       @default(0)
+  success_rate        Decimal   @default(0.00) @db.Decimal(5, 2)
+  avg_completion_time Decimal?  @db.Decimal(10, 2)
+  is_primary          Boolean   @default(false)
+  metadata            Json?
+  created_at          DateTime? @db.Timestamp(0)
+  updated_at          DateTime? @db.Timestamp(0)
+  users               users     @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "user_skills_user_id_foreign")
+
+  @@unique([user_id, skill_category, skill_name], map: "user_skills_user_id_skill_category_skill_name_unique")
+  @@index([skill_category], map: "user_skills_skill_category_index")
+  @@index([skill_category, skill_name], map: "user_skills_skill_category_skill_name_index")
+  @@index([user_id], map: "user_skills_user_id_index")
+  @@index([user_id, skill_category], map: "user_skills_user_id_skill_category_index")
+}
+
+model users {
+  id                              BigInt                          @id @default(autoincrement()) @db.UnsignedBigInt
+  name                            String                          @db.VarChar(255)
+  email                           String                          @unique(map: "users_email_unique") @db.VarChar(255)
+  phone                           String?                         @db.VarChar(20)
+  tc_no                           String?                         @db.VarChar(11)
+  address                         String?                         @db.Text
+  email_verified_at               DateTime?                       @db.Timestamp(0)
+  password                        String                          @db.VarChar(255)
+  remember_token                  String?                         @db.VarChar(100)
+  status                          users_status                    @default(active)
+  created_at                      DateTime?                       @db.Timestamp(0)
+  updated_at                      DateTime?                       @db.Timestamp(0)
+  activities                      activities[]
+  automation_rules                automation_rules[]
+  export_configurations           export_configurations[]
+  export_jobs                     export_jobs[]
+  field_mapping_templates         field_mapping_templates[]
+  import_export_logs              import_export_logs[]
+  import_jobs                     import_jobs[]
+  kanban_configs                  kanban_configs[]
+  lead_performance_metrics        lead_performance_metrics[]
+  task_assignment_history         task_assignment_history[]
+  task_attachments                task_attachments[]
+  task_comments                   task_comments[]
+  task_templates                  task_templates[]
+  tasks_tasks_assigned_toTousers  tasks[]                         @relation("tasks_assigned_toTousers")
+  tasks_tasks_completed_byTousers tasks[]                         @relation("tasks_completed_byTousers")
+  tasks_tasks_created_byTousers   tasks[]                         @relation("tasks_created_byTousers")
+  user_notification_preferences   user_notification_preferences[]
+  user_skills                     user_skills[]
+
+  @@index([status], map: "idx_users_status")
+}
+
+enum import_export_logs_type {
+  import
+  export
+}
+
+enum field_mapping_templates_type {
+  lead
+  investor
+}
+
+enum import_export_logs_entity_type {
+  lead
+  investor
+}
+
+enum import_jobs_type {
+  lead
+  investor
+}
+
+enum announcements_type {
+  info
+  warning
+  success
+  danger
+}
+
+enum automation_rules_rule_type {
+  time_based
+  event_based
+  condition_based
+}
+
+enum export_configurations_type {
+  lead
+  investor
+}
+
+enum export_jobs_type {
+  lead
+  investor
+}
+
+enum investor_fields_type {
+  text
+  select
+  multiselect
+  multiselect_dropdown
+  date
+  number
+  textarea
+  email
+  url
+}
+
+enum lead_fields_type {
+  text
+  select
+  multiselect
+  multiselect_dropdown
+  textarea
+  number
+  date
+  email
+  url
+}
+
+enum task_assignment_history_task_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum tasks_type {
+  follow_up
+  meeting
+  document
+  proposal
+  negotiation
+  due_diligence
+  other
+}
+
+enum announcements_priority {
+  low
+  medium
+  high
+}
+
+enum automation_rules_trigger_event {
+  lead_created
+  lead_status_changed
+  investor_created
+  investor_status_changed
+  task_overdue
+  task_completed
+  email_received
+  meeting_scheduled
+  follow_up_due
+  custom
+}
+
+enum task_templates_task_type {
+  follow_up
+  meeting
+  document
+  proposal
+  negotiation
+  due_diligence
+  other
+}
+
+enum tasks_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum activities_type {
+  call
+  email
+  meeting
+  note
+  task
+  other
+  created
+  updated
+  status_changed
+  representative_assigned
+  converted
+}
+
+enum import_jobs_status {
+  pending
+  processing
+  completed
+  failed
+  cancelled
+}
+
+enum investor_categories_status {
+  active
+  inactive
+}
+
+enum investor_sources_status {
+  active
+  inactive
+}
+
+enum lead_sources_status {
+  active
+  inactive
+}
+
+enum lead_statuses_status {
+  active
+  inactive
+}
+
+enum notes_type {
+  general
+  follow_up
+  meeting
+  call
+  email
+}
+
+enum roles_status {
+  active
+  inactive
+}
+
+enum task_templates_default_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum tasks_status {
+  pending
+  in_progress
+  review
+  completed
+  cancelled
+  overdue
+}
+
+enum export_jobs_format {
+  xlsx
+  csv
+}
+
+enum branches_status {
+  active
+  inactive
+}
+
+enum export_jobs_status {
+  pending
+  processing
+  completed
+  failed
+  cancelled
+}
+
+enum representatives_status {
+  active
+  inactive
+}
+
+enum activities_status {
+  pending
+  completed
+  cancelled
+}
+
+enum import_export_logs_status {
+  pending
+  processing
+  completed
+  failed
+}
+
+enum leads_source {
+  website
+  social_media
+  referral
+  cold_call
+  email
+  event
+  telegram
+  other
+}
+
+enum users_status {
+  active
+  inactive
+}
+
+enum leads_status {
+  new
+  contacted
+  qualified
+  proposal
+  negotiation
+  won
+  lost
+}
+
+enum user_notification_preferences_digest_frequency {
+  none
+  daily
+  weekly
+}
+
+enum investors_priority {
+  low
+  medium
+  normal
+  high
+  urgent
+}
+
+enum leads_priority {
+  low
+  medium
+  high
+  urgent
+}
+
+enum leads_budget {
+  under_10k
+  k_50k         @map("10k_50k")
+  k_100k        @map("50k_100k")
+  k_500k        @map("100k_500k")
+  over_500k
+  not_specified
+}
+
+enum leads_timeline {
+  immediate
+  month_1       @map("1_month")
+  months_3      @map("3_months")
+  months_6      @map("6_months")
+  year_1        @map("1_year")
+  not_specified
+}
+
+enum investors_risk_tolerance {
+  low
+  medium
+  high
+  very_high
+}
+
+enum investors_communication_preferences {
+  email
+  phone
+  meeting
+  video_call
+}
+
+enum investors_activity_status {
+  active
+  inactive
+}
