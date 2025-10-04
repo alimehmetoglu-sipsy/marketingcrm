@@ -11,9 +11,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
@@ -23,16 +21,9 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Search, Eye, Edit, Trash, Filter, Mail, Phone, Calendar, TrendingUp } from "lucide-react"
+import { MoreHorizontal, Search, Eye, Edit, Trash, Mail, Phone, Calendar, TrendingUp } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 
 interface Lead {
   id: number
@@ -69,23 +60,7 @@ const priorityConfig: Record<string, { color: string; bg: string; label: string;
 
 export function LeadsTable({ leads }: { leads: Lead[] }) {
   const router = useRouter()
-  const [search, setSearch] = useState("")
-  const [statusFilter, setStatusFilter] = useState<string>("all")
-  const [priorityFilter, setPriorityFilter] = useState<string>("all")
   const [deleteLead, setDeleteLead] = useState<{ id: string; name: string } | null>(null)
-
-  const filteredLeads = leads.filter((lead) => {
-    const searchLower = search.toLowerCase()
-    const matchesSearch = (
-      lead.full_name.toLowerCase().includes(searchLower) ||
-      lead.email.toLowerCase().includes(searchLower) ||
-      lead.phone.includes(searchLower)
-    )
-    const matchesStatus = statusFilter === "all" || lead.status === statusFilter
-    const matchesPriority = priorityFilter === "all" || lead.priority === priorityFilter
-
-    return matchesSearch && matchesStatus && matchesPriority
-  })
 
   const stats = {
     total: leads.length,
@@ -144,67 +119,6 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
         </div>
       </div>
 
-      {/* Filters and Search */}
-      <div className="bg-white rounded-lg border border-gray-200 p-4">
-        <div className="flex flex-col md:flex-row gap-4">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-gray-400" />
-            <Input
-              placeholder="Search by name, email, or phone..."
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              className="pl-10 border-gray-300 focus:border-blue-500 focus:ring-blue-500"
-            />
-          </div>
-          <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-full md:w-[180px] border-gray-300">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Status" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Status</SelectItem>
-              <SelectItem value="new">New</SelectItem>
-              <SelectItem value="contacted">Contacted</SelectItem>
-              <SelectItem value="qualified">Qualified</SelectItem>
-              <SelectItem value="proposal">Proposal</SelectItem>
-              <SelectItem value="negotiation">Negotiation</SelectItem>
-              <SelectItem value="won">Won</SelectItem>
-              <SelectItem value="lost">Lost</SelectItem>
-            </SelectContent>
-          </Select>
-          <Select value={priorityFilter} onValueChange={setPriorityFilter}>
-            <SelectTrigger className="w-full md:w-[180px] border-gray-300">
-              <Filter className="h-4 w-4 mr-2" />
-              <SelectValue placeholder="Priority" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="all">All Priority</SelectItem>
-              <SelectItem value="low">Low</SelectItem>
-              <SelectItem value="medium">Medium</SelectItem>
-              <SelectItem value="high">High</SelectItem>
-              <SelectItem value="urgent">Urgent</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-        <div className="flex items-center justify-between mt-4 pt-4 border-t border-gray-200">
-          <div className="text-sm text-gray-600">
-            Showing <span className="font-semibold text-gray-900">{filteredLeads.length}</span> of <span className="font-semibold text-gray-900">{leads.length}</span> leads
-          </div>
-          {(statusFilter !== "all" || priorityFilter !== "all") && (
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={() => {
-                setStatusFilter("all")
-                setPriorityFilter("all")
-              }}
-              className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-            >
-              Clear filters
-            </Button>
-          )}
-        </div>
-      </div>
 
       {/* Table */}
       <div className="bg-white rounded-lg border border-gray-200 overflow-hidden">
@@ -222,7 +136,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
             </TableRow>
           </TableHeader>
           <TableBody>
-            {filteredLeads.length === 0 ? (
+            {leads.length === 0 ? (
               <TableRow>
                 <TableCell colSpan={8} className="text-center py-12">
                   <div className="flex flex-col items-center justify-center">
@@ -235,7 +149,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                 </TableCell>
               </TableRow>
             ) : (
-              filteredLeads.map((lead) => {
+              leads.map((lead) => {
                 const status = statusConfig[lead.status] || { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: lead.status }
                 const priority = lead.priority ? priorityConfig[lead.priority] : null
 
