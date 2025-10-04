@@ -22,10 +22,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Building2, Mail, Phone, Search, TrendingUp, Users, DollarSign, MoreHorizontal, Eye, Edit, Trash, Calendar, MessageSquare } from "lucide-react"
+import { Building2, Mail, Phone, Search, TrendingUp, Users, DollarSign, MoreHorizontal, Eye, Edit, Trash, Calendar, MessageSquare, User } from "lucide-react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { DeleteInvestorDialog } from "./delete-investor-dialog"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 // Using central Investor type definition
 type Investor = InvestorListItem
@@ -139,6 +140,7 @@ export function InvestorsTable({ investors }: InvestorsTableProps) {
                 <TableHead className="font-semibold">Contact Info</TableHead>
                 <TableHead className="font-semibold">Source</TableHead>
                 <TableHead className="font-semibold">Status</TableHead>
+                <TableHead className="font-semibold">Assigned To</TableHead>
                 <TableHead className="font-semibold">Priority</TableHead>
                 <TableHead className="font-semibold">Created</TableHead>
                 <TableHead className="text-right font-semibold">Actions</TableHead>
@@ -147,7 +149,7 @@ export function InvestorsTable({ investors }: InvestorsTableProps) {
             <TableBody>
               {investors.length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={7} className="text-center py-12">
+                  <TableCell colSpan={8} className="text-center py-12">
                     <div className="flex flex-col items-center justify-center">
                       <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                         <Search className="h-8 w-8 text-gray-400" />
@@ -240,6 +242,31 @@ export function InvestorsTable({ investors }: InvestorsTableProps) {
                       <Badge className={`${status.bg} ${status.color} border-2`}>
                         {status.label}
                       </Badge>
+                    </TableCell>
+                    <TableCell>
+                      {investor.assigned_user ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-7 w-7 border border-emerald-200">
+                            <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs font-semibold">
+                              {investor.assigned_user.name
+                                ?.split(" ")
+                                .filter((n: string) => n)
+                                .map((n: string) => n[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase() || "??"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium text-gray-700">
+                            {investor.assigned_user.name || investor.assigned_user.email}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2 text-sm text-gray-400">
+                          <User className="h-4 w-4" />
+                          <span>Unassigned</span>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {priority ? (

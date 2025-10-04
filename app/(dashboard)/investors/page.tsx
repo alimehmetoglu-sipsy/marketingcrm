@@ -6,7 +6,7 @@ import { checkMenuPermission } from "@/lib/permissions"
 import { Unauthorized } from "@/components/unauthorized"
 
 async function getInvestorsData() {
-  const [investors, investorFields] = await Promise.all([
+  const [investors, investorFields, activeUsers] = await Promise.all([
     prisma.investors.findMany({
       orderBy: { created_at: "desc" },
       include: {
@@ -27,7 +27,46 @@ async function getInvestorsData() {
       },
       orderBy: { sort_order: "asc" },
     }),
+    prisma.users.findMany({
+      where: { status: "active" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: { name: "asc" },
+    }),
   ])
+
+  // Get all user assignments for investors
+  const investorIds = investors.map((inv) => inv.id)
+  const assignments = await prisma.user_assignments.findMany({
+    where: {
+      entity_type: "investor",
+      entity_id: { in: investorIds },
+    },
+    include: {
+      user_assigned: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+    },
+  })
+
+  // Create a map for quick lookup
+  const assignmentMap = new Map(
+    assignments.map((a) => [
+      Number(a.entity_id),
+      {
+        id: Number(a.user_assigned.id),
+        name: a.user_assigned.name,
+        email: a.user_assigned.email,
+      },
+    ])
+  )
 
   // Convert BigInt to number and parse JSON values
   const serializedInvestors = investors.map((investor) => ({
@@ -37,6 +76,7 @@ async function getInvestorsData() {
     representative_id: investor.representative_id ? Number(investor.representative_id) : null,
     created_by: investor.created_by ? Number(investor.created_by) : null,
     updated_by: investor.updated_by ? Number(investor.updated_by) : null,
+    assignedUser: assignmentMap.get(Number(investor.id)) || null,
     investor_field_values: investor.investor_field_values.map((fv) => {
       let parsedValue = fv.value
 
@@ -72,7 +112,17 @@ async function getInvestorsData() {
     })),
   }))
 
-  return { investors: serializedInvestors, investorFields: serializedFields }
+  const serializedUsers = activeUsers.map((user) => ({
+    id: Number(user.id),
+    name: user.name,
+    email: user.email,
+  }))
+
+  return {
+    investors: serializedInvestors,
+    investorFields: serializedFields,
+    activeUsers: serializedUsers,
+  }
 }
 
 export default async function InvestorsPage() {
@@ -83,7 +133,7 @@ export default async function InvestorsPage() {
     return <Unauthorized />
   }
 
-  const { investors, investorFields } = await getInvestorsData()
+  const { investors, investorFields, activeUsers } = await getInvestorsData()
 
   return (
     <div className="space-y-6">
@@ -97,7 +147,11 @@ export default async function InvestorsPage() {
         <AddInvestorButton />
       </div>
 
-      <InvestorsTableWithFilters investors={investors} investorFields={investorFields} />
+      <InvestorsTableWithFilters
+        investors={investors}
+        investorFields={investorFields}
+        activeUsers={activeUsers}
+      />
     </div>
   )
 }

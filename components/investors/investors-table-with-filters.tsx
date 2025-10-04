@@ -31,9 +31,16 @@ type InvestorField = {
   }>
 }
 
+type User = {
+  id: number
+  name: string | null
+  email: string
+}
+
 interface InvestorsTableWithFiltersProps {
   investors: Investor[]
   investorFields: InvestorField[]
+  activeUsers: User[]
 }
 
 const SOURCE_OPTIONS = [
@@ -63,7 +70,7 @@ const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent" },
 ]
 
-export function InvestorsTableWithFilters({ investors, investorFields }: InvestorsTableWithFiltersProps) {
+export function InvestorsTableWithFilters({ investors, investorFields, activeUsers }: InvestorsTableWithFiltersProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState<Record<string, string>>({})
 
@@ -88,7 +95,7 @@ export function InvestorsTableWithFilters({ investors, investorFields }: Investo
         (lead) =>
           lead.full_name.toLowerCase().includes(searchLower) ||
           lead.email.toLowerCase().includes(searchLower) ||
-          lead.phone.includes(searchTerm)
+          (lead.phone && lead.phone.includes(searchTerm))
       )
     }
 
@@ -102,8 +109,16 @@ export function InvestorsTableWithFilters({ investors, investorFields }: Investo
         if (fieldName === "status") return lead.status === filterValue
         if (fieldName === "priority") return lead.priority === filterValue
 
+        // Assigned User filter
+        if (fieldName === "assigned_user") {
+          if (filterValue === "unassigned") {
+            return !lead.assignedUser
+          }
+          return lead.assignedUser?.id === parseInt(filterValue)
+        }
+
         // Custom fields
-        const fieldValue = lead.investor_field_values.find(
+        const fieldValue = lead.investor_field_values?.find(
           (fv) => fv.investor_fields.name === fieldName
         )
 
@@ -144,6 +159,7 @@ export function InvestorsTableWithFilters({ investors, investorFields }: Investo
     source: lead.source,
     status: lead.status,
     priority: lead.priority,
+    assigned_user: lead.assignedUser,
     created_at: lead.created_at,
   }))
 
@@ -202,6 +218,22 @@ export function InvestorsTableWithFilters({ investors, investorFields }: Investo
             {PRIORITY_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Assigned User Filter */}
+        <Select value={filters.assigned_user || "all"} onValueChange={(v) => handleFilterChange("assigned_user", v)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Assigned To" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Users</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {activeUsers.map((user) => (
+              <SelectItem key={user.id} value={user.id.toString()}>
+                {user.name || user.email}
               </SelectItem>
             ))}
           </SelectContent>
