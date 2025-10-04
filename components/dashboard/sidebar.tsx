@@ -17,20 +17,28 @@ import {
 import { Button } from "@/components/ui/button"
 import { ScrollArea } from "@/components/ui/scroll-area"
 import { useState } from "react"
+import { useSession } from "next-auth/react"
+import { checkMenuPermission } from "@/lib/permissions"
 
 const navigation = [
-  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { name: "Leads", href: "/leads", icon: Users },
-  { name: "Investors", href: "/investors", icon: Building2 },
-  { name: "Tasks", href: "/tasks", icon: CheckSquare },
-  { name: "Activities", href: "/activities", icon: Activity },
-  { name: "Reports", href: "/reports", icon: BarChart3 },
-  { name: "Settings", href: "/settings", icon: Settings },
+  { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard, key: "dashboard" },
+  { name: "Leads", href: "/leads", icon: Users, key: "leads" },
+  { name: "Investors", href: "/investors", icon: Building2, key: "investors" },
+  { name: "Tasks", href: "/tasks", icon: CheckSquare, key: "tasks" },
+  { name: "Activities", href: "/activities", icon: Activity, key: "activities" },
+  { name: "Reports", href: "/reports", icon: BarChart3, key: "reports" },
+  { name: "Settings", href: "/settings", icon: Settings, key: "settings" },
 ]
 
 export function DashboardSidebar() {
   const pathname = usePathname()
   const [collapsed, setCollapsed] = useState(false)
+  const { data: session } = useSession()
+
+  // Filter navigation based on user permissions
+  const filteredNavigation = navigation.filter((item) => {
+    return checkMenuPermission(session?.user?.permissions, item.key)
+  })
 
   return (
     <div
@@ -57,7 +65,7 @@ export function DashboardSidebar() {
       {/* Navigation */}
       <ScrollArea className="flex-1 px-3 py-4">
         <nav className="space-y-1">
-          {navigation.map((item) => {
+          {filteredNavigation.map((item) => {
             const isActive = pathname === item.href
             const Icon = item.icon
 

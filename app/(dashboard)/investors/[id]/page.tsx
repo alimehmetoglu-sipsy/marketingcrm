@@ -43,8 +43,9 @@ async function getInvestor(id: string) {
     orderBy: { sort_order: "asc" },
   })
 
-  // Get activity types
+  // Get activity types (only active ones)
   const activityTypes = await prisma.activity_types.findMany({
+    where: { is_active: true },
     orderBy: { sort_order: "asc" },
   })
 
@@ -52,6 +53,40 @@ async function getInvestor(id: string) {
   const formSections = await prisma.investor_form_sections.findMany({
     where: { is_visible: true },
     orderBy: { sort_order: "asc" },
+  })
+
+  // Get assigned user
+  const assignment = await prisma.user_assignments.findFirst({
+    where: {
+      entity_type: "investor",
+      entity_id: investor.id,
+    },
+    include: {
+      user_assigned: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      user_assigner: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  })
+
+  // Get active users for assignment dropdown
+  const activeUsers = await prisma.users.findMany({
+    where: { status: "active" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+    orderBy: { name: "asc" },
   })
 
   // Convert BigInt to number and parse JSON values for multiselect fields
@@ -126,6 +161,23 @@ async function getInvestor(id: string) {
     formSections: formSections.map((section) => ({
       ...section,
       id: Number(section.id),
+    })),
+    assignedUser: assignment
+      ? {
+          id: Number(assignment.user_assigned.id),
+          name: assignment.user_assigned.name,
+          email: assignment.user_assigned.email,
+          assigned_at: assignment.assigned_at,
+          assigned_by: {
+            id: Number(assignment.user_assigner.id),
+            name: assignment.user_assigner.name,
+          },
+        }
+      : null,
+    activeUsers: activeUsers.map((user) => ({
+      id: Number(user.id),
+      name: user.name,
+      email: user.email,
     })),
   }
 }

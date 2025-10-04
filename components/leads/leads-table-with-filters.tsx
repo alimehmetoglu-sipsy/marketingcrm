@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useMemo } from "react"
+import type { Lead as LeadType } from "@/types/lead"
 import { LeadsTable } from "./leads-table"
 import { Search, X } from "lucide-react"
 import { Input } from "@/components/ui/input"
@@ -13,27 +14,9 @@ import {
 } from "@/components/ui/select"
 import { Button } from "@/components/ui/button"
 
-type Lead = {
-  id: number
-  full_name: string
-  email: string
-  phone: string
-  source: string
-  status: string
-  priority: string
-  created_at: Date | null
-  lead_field_values: Array<{
-    id: number
-    lead_id: number
-    lead_field_id: number
-    value: any
-    lead_fields: {
-      id: number
-      name: string
-      label: string
-      type: string
-    }
-  }>
+// Using central type - all fields optional for maximum flexibility
+type Lead = LeadType & {
+  [key: string]: any // Allow any additional fields from Prisma queries
 }
 
 type LeadField = {

@@ -4,7 +4,7 @@ import { prisma } from "@/lib/prisma"
 export async function POST(request: NextRequest) {
   try {
     const body = await request.json()
-    const { lead_id, investor_id, type, subject, description, lead_status } = body
+    const { lead_id, investor_id, type, activity_type_id, subject, description, lead_status } = body
 
     // Validate required fields
     if (!type || !description) {
@@ -22,13 +22,22 @@ export async function POST(request: NextRequest) {
       )
     }
 
+    // If activity_type_id is provided, fetch the activity type
+    let activityType = null
+    if (activity_type_id) {
+      activityType = await prisma.activity_types.findUnique({
+        where: { id: BigInt(activity_type_id) }
+      })
+    }
+
     // Create activity
     const activity = await prisma.activities.create({
       data: {
         lead_id: lead_id ? BigInt(lead_id) : null,
         investor_id: investor_id ? BigInt(investor_id) : null,
-        type: type,
-        subject: subject || "Activity",
+        activity_type_id: activity_type_id ? BigInt(activity_type_id) : null,
+        type: activityType?.name || type,
+        subject: subject || activityType?.label || "Activity",
         description: description,
         status: "completed",
         scheduled_at: null,
@@ -49,12 +58,23 @@ export async function POST(request: NextRequest) {
       })
     }
 
+    // Update investor's last_activity_at if investor_id is provided
+    if (investor_id) {
+      await prisma.investors.update({
+        where: { id: BigInt(investor_id) },
+        data: {
+          last_activity_at: new Date(),
+        },
+      })
+    }
+
     // Serialize BigInt values
     const serializedActivity = {
       ...activity,
       id: Number(activity.id),
       lead_id: activity.lead_id ? Number(activity.lead_id) : null,
       investor_id: activity.investor_id ? Number(activity.investor_id) : null,
+      activity_type_id: activity.activity_type_id ? Number(activity.activity_type_id) : null,
       representative_id: activity.representative_id ? Number(activity.representative_id) : null,
       user_id: activity.user_id ? Number(activity.user_id) : null,
     }
@@ -95,9 +115,17 @@ export async function GET(request: NextRequest) {
         },
         investors: {
           select: {
-            first_name: true,
-            last_name: true,
+            full_name: true,
             email: true,
+          },
+        },
+        activity_types: {
+          select: {
+            id: true,
+            name: true,
+            label: true,
+            icon: true,
+            color: true,
           },
         },
       },
@@ -109,8 +137,13 @@ export async function GET(request: NextRequest) {
       id: Number(activity.id),
       lead_id: activity.lead_id ? Number(activity.lead_id) : null,
       investor_id: activity.investor_id ? Number(activity.investor_id) : null,
+      activity_type_id: activity.activity_type_id ? Number(activity.activity_type_id) : null,
       representative_id: activity.representative_id ? Number(activity.representative_id) : null,
       user_id: activity.user_id ? Number(activity.user_id) : null,
+      activity_types: activity.activity_types ? {
+        ...activity.activity_types,
+        id: Number(activity.activity_types.id),
+      } : null,
     }))
 
     return NextResponse.json({

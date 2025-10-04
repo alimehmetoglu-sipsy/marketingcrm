@@ -2,6 +2,7 @@
 
 import { useState, useMemo } from "react"
 import { useRouter } from "next/navigation"
+import type { InvestorListItem } from "@/types/investor"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -21,23 +22,13 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { Building2, Mail, Phone, Search, TrendingUp, Users, DollarSign, MoreHorizontal, Eye, Edit, Trash, Calendar } from "lucide-react"
+import { Building2, Mail, Phone, Search, TrendingUp, Users, DollarSign, MoreHorizontal, Eye, Edit, Trash, Calendar, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { formatDistanceToNow } from "date-fns"
 import { DeleteInvestorDialog } from "./delete-investor-dialog"
 
-interface Investor {
-  id: number
-  full_name: string
-  email: string
-  phone: string | null
-  company: string | null
-  position: string | null
-  status: string
-  priority: string | null
-  source: string
-  created_at: Date | null
-}
+// Using central Investor type definition
+type Investor = InvestorListItem
 
 interface InvestorsTableProps {
   investors: Investor[]
@@ -193,17 +184,51 @@ export function InvestorsTable({ investors }: InvestorsTableProps) {
                       </div>
                     </TableCell>
                     <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2 text-sm">
-                          <Mail className="h-3 w-3 text-muted-foreground" />
-                          {investor.email}
-                        </div>
-                        {investor.phone && (
-                          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                            <Phone className="h-3 w-3" />
-                            {investor.phone}
+                      <div className="space-y-2">
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-sm">
+                            <Mail className="h-3 w-3 text-muted-foreground" />
+                            {investor.email}
                           </div>
-                        )}
+                          {investor.phone && (
+                            <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                              <Phone className="h-3 w-3" />
+                              {investor.phone}
+                            </div>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <a
+                            href={`mailto:${investor.email}`}
+                            onClick={(e) => e.stopPropagation()}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-blue-100 transition-colors"
+                            title="Send Email"
+                          >
+                            <Mail className="h-4 w-4 text-blue-600" />
+                          </a>
+                          {investor.phone && (
+                            <>
+                              <a
+                                href={`tel:${investor.phone}`}
+                                onClick={(e) => e.stopPropagation()}
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-green-100 transition-colors"
+                                title="Call"
+                              >
+                                <Phone className="h-4 w-4 text-green-600" />
+                              </a>
+                              <a
+                                href={`https://wa.me/${investor.phone.replace(/[^0-9]/g, '')}`}
+                                onClick={(e) => e.stopPropagation()}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-emerald-100 transition-colors"
+                                title="WhatsApp"
+                              >
+                                <MessageSquare className="h-4 w-4 text-emerald-600" />
+                              </a>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </TableCell>
                     <TableCell>

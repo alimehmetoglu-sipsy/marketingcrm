@@ -1,6 +1,8 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Settings2, Sliders, Bell, Shield, Database, Palette, Activity } from "lucide-react"
+import { Settings2, Sliders, Bell, Shield, Database, Palette, Activity, Users, KeyRound } from "lucide-react"
 import Link from "next/link"
+import { auth } from "@/lib/auth-config"
+import { canAccessSettings } from "@/lib/permissions"
 
 const settingsPages = [
   {
@@ -9,6 +11,7 @@ const settingsPages = [
     icon: Sliders,
     href: "/settings/lead-fields",
     color: "from-indigo-500 to-purple-500",
+    permission: "leadFields" as const,
   },
   {
     title: "Investor Properties",
@@ -16,6 +19,7 @@ const settingsPages = [
     icon: Database,
     href: "/settings/investor-fields",
     color: "from-emerald-500 to-teal-500",
+    permission: "investorFields" as const,
   },
   {
     title: "Activity Types",
@@ -23,6 +27,23 @@ const settingsPages = [
     icon: Activity,
     href: "/settings/activity-types",
     color: "from-green-500 to-emerald-500",
+    permission: "activityTypes" as const,
+  },
+  {
+    title: "Users",
+    description: "Manage system users and their access",
+    icon: Users,
+    href: "/settings/users",
+    color: "from-blue-500 to-indigo-500",
+    permission: "users" as const,
+  },
+  {
+    title: "Roles & Permissions",
+    description: "Configure user roles and access control",
+    icon: KeyRound,
+    href: "/settings/roles",
+    color: "from-purple-500 to-pink-500",
+    permission: "roles" as const,
   },
   {
     title: "General Settings",
@@ -30,6 +51,7 @@ const settingsPages = [
     icon: Settings2,
     href: "/settings/general",
     color: "from-blue-500 to-cyan-500",
+    permission: null,
   },
   {
     title: "Notifications",
@@ -37,6 +59,7 @@ const settingsPages = [
     icon: Bell,
     href: "/settings/notifications",
     color: "from-orange-500 to-red-500",
+    permission: null,
   },
   {
     title: "Security",
@@ -44,6 +67,7 @@ const settingsPages = [
     icon: Shield,
     href: "/settings/security",
     color: "from-pink-500 to-rose-500",
+    permission: null,
   },
   {
     title: "Appearance",
@@ -51,10 +75,18 @@ const settingsPages = [
     icon: Palette,
     href: "/settings/appearance",
     color: "from-violet-500 to-purple-500",
+    permission: null,
   },
 ]
 
-export default function SettingsPage() {
+export default async function SettingsPage() {
+  const session = await auth()
+
+  // Filter settings pages based on permissions
+  const accessiblePages = settingsPages.filter((page) => {
+    if (page.permission === null) return true // General settings always visible
+    return canAccessSettings(session?.user?.permissions, page.permission)
+  })
   return (
     <div className="space-y-6">
       <div>
@@ -65,7 +97,7 @@ export default function SettingsPage() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-        {settingsPages.map((page) => {
+        {accessiblePages.map((page) => {
           const Icon = page.icon
           return (
             <Link key={page.href} href={page.href}>

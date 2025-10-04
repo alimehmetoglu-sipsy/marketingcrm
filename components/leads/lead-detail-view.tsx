@@ -39,9 +39,9 @@ interface LeadDetailProps {
     full_name: string
     email: string
     phone: string
-    source: string
-    status: string
-    priority: string
+    source?: string | null
+    status?: string | null
+    priority?: string | null
     created_at: Date | null
     updated_at: Date | null
     activities?: Array<{
@@ -128,8 +128,8 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [addActivityOpen, setAddActivityOpen] = useState(false)
 
-  const status = statusConfig[lead.status]
-  const priority = priorityConfig[lead.priority]
+  const status = statusConfig[lead.status] || { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: lead.status }
+  const priority = lead.priority ? priorityConfig[lead.priority] : null
 
   // Get field value helper
   const getFieldValue = (fieldName: string) => {

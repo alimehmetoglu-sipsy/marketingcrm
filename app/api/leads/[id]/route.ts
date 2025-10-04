@@ -49,6 +49,18 @@ export async function PUT(
     console.log("Custom Fields:", customFields)
     console.log("Lead Data:", leadData)
 
+    // Get system field definitions (source, status, priority)
+    const systemFields = await prisma.lead_fields.findMany({
+      where: {
+        name: { in: ['source', 'status', 'priority'] },
+        is_active: true
+      }
+    })
+
+    const sourceField = systemFields.find(f => f.name === 'source')
+    const statusField = systemFields.find(f => f.name === 'status')
+    const priorityField = systemFields.find(f => f.name === 'priority')
+
     // Prepare update data
     const updateData: any = {
       full_name: leadData.full_name,
@@ -57,16 +69,29 @@ export async function PUT(
       updated_at: new Date(),
     }
 
-    // Only update these fields if they exist
-    if (customFields?.source || leadData.source) {
+    // Handle source field - check both by field ID and by name
+    if (sourceField && customFields?.[sourceField.id.toString()]) {
+      updateData.source = customFields[sourceField.id.toString()]
+    } else if (customFields?.source || leadData.source) {
       updateData.source = customFields?.source || leadData.source
     }
-    if (customFields?.status || leadData.status) {
+
+    // Handle status field - check both by field ID and by name
+    if (statusField && customFields?.[statusField.id.toString()]) {
+      updateData.status = customFields[statusField.id.toString()]
+    } else if (customFields?.status || leadData.status) {
       updateData.status = customFields?.status || leadData.status
     }
-    if (customFields?.priority || leadData.priority) {
-      updateData.priority = customFields?.priority || leadData.priority
+
+    // Handle priority field - check both by field ID and by name
+    if (priorityField && customFields?.[priorityField.id.toString()] !== undefined) {
+      updateData.priority = customFields[priorityField.id.toString()] || null
+    } else if (customFields?.priority !== undefined) {
+      updateData.priority = customFields.priority || null
+    } else if (leadData.priority !== undefined) {
+      updateData.priority = leadData.priority || null
     }
+
     if (leadData.notes !== undefined) {
       updateData.notes_text = leadData.notes
     }
@@ -84,10 +109,20 @@ export async function PUT(
       })
 
       // Insert new custom field values, excluding system fields
+      const systemFieldIds = [
+        sourceField?.id.toString(),
+        statusField?.id.toString(),
+        priorityField?.id.toString()
+      ].filter(Boolean)
+
       const fieldValues = Object.entries(customFields)
         .filter(([key, value]) => {
-          // Exclude system fields (source, status, priority)
+          // Exclude system fields by name
           if (key === "source" || key === "status" || key === "priority") {
+            return false
+          }
+          // Exclude system fields by ID
+          if (systemFieldIds.includes(key)) {
             return false
           }
           // Exclude if value is empty

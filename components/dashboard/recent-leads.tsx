@@ -9,7 +9,6 @@ interface Lead {
   full_name: string
   email: string | null
   phone: string
-  phone_country: string
   status: string
   created_at: Date | null
 }
@@ -51,7 +50,7 @@ export function RecentLeads({ leads }: RecentLeadsProps) {
                     {lead.full_name}
                   </p>
                   <p className="text-sm text-muted-foreground">
-                    {lead.email || `${lead.phone_country} ${lead.phone}`}
+                    {lead.email || lead.phone}
                   </p>
                 </div>
               </div>

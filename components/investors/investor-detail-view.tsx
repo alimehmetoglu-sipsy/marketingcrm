@@ -28,6 +28,8 @@ import {
   CheckCircle2,
   Target,
   Briefcase,
+  UserCircle,
+  Users,
 } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
@@ -42,6 +44,23 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog"
+import { AddActivityDialog } from "@/components/activities/add-activity-dialog"
+import { getActivityIconComponent, getActivityBgColor } from "@/lib/activity-icons"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface InvestorDetailProps {
   investor: {
@@ -120,21 +139,36 @@ interface InvestorDetailProps {
       icon: string | null
       gradient: string | null
     }>
+    assignedUser: {
+      id: number
+      name: string
+      email: string
+      assigned_at: Date
+      assigned_by: {
+        id: number
+        name: string
+      }
+    } | null
+    activeUsers: Array<{
+      id: number
+      name: string
+      email: string
+    }>
   }
 }
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-  active: { color: "text-green-700", bg: "bg-green-50 border-green-200", label: "Active" },
-  prospect: { color: "text-blue-700", bg: "bg-blue-50 border-blue-200", label: "Prospect" },
+  potential: { color: "text-blue-700", bg: "bg-blue-50 border-blue-200", label: "Potential" },
+  contacted: { color: "text-cyan-700", bg: "bg-cyan-50 border-cyan-200", label: "Contacted" },
   interested: { color: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200", label: "Interested" },
-  negotiating: { color: "text-orange-700", bg: "bg-orange-50 border-orange-200", label: "Negotiating" },
-  invested: { color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", label: "Invested" },
+  committed: { color: "text-orange-700", bg: "bg-orange-50 border-orange-200", label: "Committed" },
+  active: { color: "text-green-700", bg: "bg-green-50 border-green-200", label: "Active" },
   inactive: { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: "Inactive" },
 }
 
 const priorityConfig: Record<string, { color: string; bg: string; label: string; icon: string }> = {
   low: { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: "Low", icon: "○" },
-  medium: { color: "text-blue-700", bg: "bg-blue-50 border-blue-200", label: "Medium", icon: "◐" },
+  normal: { color: "text-blue-700", bg: "bg-blue-50 border-blue-200", label: "Normal", icon: "◐" },
   high: { color: "text-orange-700", bg: "bg-orange-50 border-orange-200", label: "High", icon: "●" },
   urgent: { color: "text-red-700", bg: "bg-red-50 border-red-200", label: "Urgent", icon: "⚠" },
 }
@@ -143,9 +177,32 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
   const router = useRouter()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [addActivityOpen, setAddActivityOpen] = useState(false)
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string>("")
+  const [assigning, setAssigning] = useState(false)
 
-  const status = statusConfig[investor.status] || statusConfig.active
-  const priority = investor.priority ? (priorityConfig[investor.priority] || priorityConfig.medium) : null
+  // Get status from dynamic fields (with fallback to static column)
+  const getStatusValue = () => {
+    const statusField = investor.customFieldValues.find(
+      (cfv) => cfv.investor_fields.name === "status"
+    )
+    return statusField?.value as string || investor.status
+  }
+
+  // Get priority from dynamic fields (with fallback to static column)
+  const getPriorityValue = () => {
+    const priorityField = investor.customFieldValues.find(
+      (cfv) => cfv.investor_fields.name === "priority"
+    )
+    return priorityField?.value as string || investor.priority
+  }
+
+  const statusValue = getStatusValue()
+  const priorityValue = getPriorityValue()
+
+  const status = statusConfig[statusValue] || statusConfig.active
+  const priority = priorityValue ? (priorityConfig[priorityValue] || priorityConfig.normal) : null
 
   // Get field display value helper
   const getFieldDisplayValue = (fieldName: string) => {
@@ -218,6 +275,49 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
       toast.error("Failed to delete investor")
       setDeleting(false)
     }
+  }
+
+  // Handle user assignment
+  const handleAssignUser = async () => {
+    if (!selectedUserId && selectedUserId !== "unassign") {
+      toast.error("Please select a user")
+      return
+    }
+
+    setAssigning(true)
+    try {
+      const res = await fetch(`/api/investors/${investor.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: selectedUserId === "unassign" ? null : parseInt(selectedUserId),
+        }),
+      })
+
+      if (!res.ok) {
+        const error = await res.json()
+        throw new Error(error.error || "Failed to assign user")
+      }
+
+      toast.success(
+        selectedUserId === "unassign"
+          ? "User unassigned successfully"
+          : "User assigned successfully"
+      )
+      setAssignDialogOpen(false)
+      setSelectedUserId("")
+      router.refresh()
+    } catch (error: any) {
+      toast.error(error.message || "Failed to assign user")
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  // Open assign dialog with current user pre-selected
+  const openAssignDialog = () => {
+    setSelectedUserId(investor.assignedUser?.id.toString() || "")
+    setAssignDialogOpen(true)
   }
 
   return (
@@ -311,75 +411,6 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
               </div>
             </div>
           </div>
-        </div>
-
-        {/* Quick Stats Cards - EMERALD THEME */}
-        <div className="grid gap-6 md:grid-cols-4">
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Activities</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {investor.activities?.length || 0}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Activity className="h-6 w-6 text-emerald-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Custom Fields</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {investor.allFields.filter(f => !f.is_system_field && f.name !== "source" && f.name !== "status" && f.name !== "priority").length}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-teal-100 flex items-center justify-center">
-                  <Tag className="h-6 w-6 text-teal-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Days Active</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {investor.created_at
-                      ? Math.floor((new Date().getTime() - new Date(investor.created_at).getTime()) / (1000 * 60 * 60 * 24))
-                      : 0}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-green-100 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-green-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Investment</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {status.label === "Invested" ? "✓" : "-"}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-amber-100 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-amber-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         <div className="grid gap-6 lg:grid-cols-3">
@@ -496,7 +527,7 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                   const gradientClass = section.gradient || 'bg-gradient-to-r from-gray-50 to-gray-100'
 
                   // Check if this is the Investor Details section
-                  const isInvestorDetailsSection = section.section_key === 'investor_details'
+                  const isInvestorDetailsSection = section.section_key === 'investment_details'
 
                   return (
                     <Card key={section.id} className="border-gray-200 shadow-sm">
@@ -511,7 +542,7 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                           {/* Add Status and Priority at the top of Investor Details section */}
                           {isInvestorDetailsSection && (
                             <>
-                              {/* Status */}
+                              {/* Status - Always show */}
                               <div className="space-y-2 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <CheckCircle2 className="h-4 w-4 text-gray-400" />
@@ -524,21 +555,23 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                                 </div>
                               </div>
 
-                              {/* Priority */}
-                              {investor.priority && priority && (
-                                <div className="space-y-2 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
-                                  <div className="flex items-center gap-2 text-sm text-gray-600">
-                                    <AlertCircle className="h-4 w-4 text-gray-400" />
-                                    <span className="font-medium">Priority</span>
-                                  </div>
-                                  <div className="ml-6">
+                              {/* Priority - Show always, even if null, display "-" */}
+                              <div className="space-y-2 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
+                                <div className="flex items-center gap-2 text-sm text-gray-600">
+                                  <AlertCircle className="h-4 w-4 text-gray-400" />
+                                  <span className="font-medium">Priority</span>
+                                </div>
+                                <div className="ml-6">
+                                  {priority ? (
                                     <Badge className={`${priority.bg} ${priority.color} border-none shadow-sm`}>
                                       <span className="mr-1">{priority.icon}</span>
                                       {priority.label}
                                     </Badge>
-                                  </div>
+                                  ) : (
+                                    <span className="text-gray-500">-</span>
+                                  )}
                                 </div>
-                              )}
+                              </div>
                             </>
                           )}
 
@@ -713,48 +746,92 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
               <TabsContent value="activity" className="mt-6 space-y-6">
                 <Card className="border-gray-200 shadow-sm">
                   <CardHeader className="border-b border-gray-200">
-                    <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                      <Activity className="h-5 w-5 text-emerald-600" />
-                      Activity Timeline
+                    <CardTitle className="text-lg font-semibold text-gray-900 flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <Activity className="h-5 w-5 text-emerald-600" />
+                        Activity Timeline
+                      </div>
+                      <Button
+                        size="sm"
+                        onClick={() => setAddActivityOpen(true)}
+                        className="bg-emerald-600 hover:bg-emerald-700"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Activity
+                      </Button>
                     </CardTitle>
                   </CardHeader>
                   <CardContent className="p-6">
                     {investor.activities && investor.activities.length > 0 ? (
                       <div className="space-y-4">
-                        {investor.activities.map((activity, index) => (
-                          <div key={activity.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
-                            <div className="flex flex-col items-center">
-                              <div className="h-10 w-10 rounded-full bg-emerald-100 flex items-center justify-center">
-                                <Activity className="h-5 w-5 text-emerald-600" />
+                        {investor.activities.map((activity, index) => {
+                          // Find matching activity type
+                          const activityType = investor.activityTypes.find(
+                            (at) => at.name === activity.type
+                          )
+                          const IconComponent = getActivityIconComponent(activityType?.icon || null)
+                          const bgColor = getActivityBgColor(activityType?.color || null)
+                          const iconColor = activityType?.color || '#6b7280'
+
+                          return (
+                            <div key={activity.id} className="flex gap-4 pb-4 border-b border-gray-200 last:border-0">
+                              <div className="flex flex-col items-center">
+                                <div
+                                  className="h-10 w-10 rounded-full flex items-center justify-center"
+                                  style={{ backgroundColor: bgColor }}
+                                >
+                                  <IconComponent
+                                    className="h-5 w-5"
+                                    style={{ color: iconColor }}
+                                  />
+                                </div>
+                                {index !== investor.activities!.length - 1 && (
+                                  <div className="w-px h-full bg-gray-200 mt-2" />
+                                )}
                               </div>
-                              {index !== investor.activities!.length - 1 && (
-                                <div className="w-px h-full bg-gray-200 mt-2" />
-                              )}
-                            </div>
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-1">
-                                <h4 className="font-medium text-gray-900">
-                                  {activity.subject || activity.type}
-                                </h4>
-                                <span className="text-sm text-gray-500">
-                                  {activity.created_at ? format(new Date(activity.created_at), "MMM dd, HH:mm") : "-"}
-                                </span>
+                              <div className="flex-1">
+                                <div className="flex items-center justify-between mb-1">
+                                  <div className="flex items-center gap-2">
+                                    <h4 className="font-medium text-gray-900">
+                                      {activity.subject || activityType?.label || activity.type}
+                                    </h4>
+                                    {activityType && (
+                                      <Badge
+                                        variant="outline"
+                                        className="text-xs"
+                                        style={{
+                                          borderColor: activityType.color || '#e5e7eb',
+                                          color: activityType.color || '#6b7280',
+                                        }}
+                                      >
+                                        {activityType.label}
+                                      </Badge>
+                                    )}
+                                  </div>
+                                  <span className="text-sm text-gray-500">
+                                    {activity.created_at ? format(new Date(activity.created_at), "MMM dd, HH:mm") : "-"}
+                                  </span>
+                                </div>
+                                {activity.description && (
+                                  <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
+                                )}
+                                <Badge variant="outline" className="mt-2 text-xs capitalize">
+                                  {activity.status.replace('_', ' ')}
+                                </Badge>
                               </div>
-                              {activity.description && (
-                                <p className="text-sm text-gray-600 mt-1">{activity.description}</p>
-                              )}
-                              <Badge variant="outline" className="mt-2 text-xs">
-                                {activity.status}
-                              </Badge>
                             </div>
-                          </div>
-                        ))}
+                          )
+                        })}
                       </div>
                     ) : (
                       <div className="text-center py-12">
                         <MessageSquare className="h-12 w-12 text-gray-400 mx-auto mb-4" />
                         <h3 className="text-lg font-medium text-gray-900 mb-2">No Activities Yet</h3>
                         <p className="text-gray-600 mb-4">Get started by adding the first activity for this investor.</p>
+                        <Button onClick={() => setAddActivityOpen(true)} size="sm">
+                          <Plus className="h-4 w-4 mr-2" />
+                          Add First Activity
+                        </Button>
                       </div>
                     )}
                   </CardContent>
@@ -780,6 +857,7 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                 <Button
                   variant="outline"
                   className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                  onClick={() => setAddActivityOpen(true)}
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Activity
@@ -791,6 +869,64 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                   <MessageSquare className="h-4 w-4 mr-2" />
                   Send Message
                 </Button>
+              </CardContent>
+            </Card>
+
+            {/* Assigned To */}
+            <Card className="border-gray-200 shadow-sm">
+              <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-gray-200">
+                <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <UserCircle className="h-5 w-5 text-emerald-600" />
+                  Assigned To
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {investor.assignedUser ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-12 w-12 border-2 border-emerald-100">
+                        <AvatarFallback className="bg-emerald-100 text-emerald-700 font-semibold">
+                          {getInitials(investor.assignedUser.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {investor.assignedUser.name}
+                        </p>
+                        <p className="text-sm text-gray-600 truncate">
+                          {investor.assignedUser.email}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Assigned {formatDistanceToNow(new Date(investor.assignedUser.assigned_at), { addSuffix: true })}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          by {investor.assignedUser.assigned_by.name}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                      onClick={openAssignDialog}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Change Assignment
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <UserCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-4">No user assigned</p>
+                    <Button
+                      variant="outline"
+                      className="w-full border-emerald-200 bg-emerald-50 hover:bg-emerald-100 text-emerald-700"
+                      onClick={openAssignDialog}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Assign User
+                    </Button>
+                  </div>
+                )}
               </CardContent>
             </Card>
 
@@ -862,6 +998,108 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Add Activity Dialog */}
+      <AddActivityDialog
+        open={addActivityOpen}
+        onOpenChange={setAddActivityOpen}
+        investorId={investor.id}
+        onSuccess={() => {
+          router.refresh()
+        }}
+      />
+
+      {/* Assign User Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-emerald-600" />
+              Assign User
+            </DialogTitle>
+            <DialogDescription>
+              Select a user to assign this investor to, or choose "Unassign" to remove the current assignment.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="user-select" className="text-sm font-medium text-gray-900">
+                User
+              </label>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger id="user-select" className="w-full">
+                  <SelectValue placeholder="Select a user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {investor.assignedUser && (
+                    <>
+                      <SelectItem value="unassign" className="text-red-600">
+                        <span className="flex items-center gap-2">
+                          <UserCircle className="h-4 w-4" />
+                          Unassign User
+                        </span>
+                      </SelectItem>
+                      <Separator className="my-1" />
+                    </>
+                  )}
+                  {investor.activeUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="bg-emerald-100 text-emerald-700 text-xs">
+                            {getInitials(user.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{user.name}</span>
+                          <span className="text-xs text-gray-500">{user.email}</span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedUserId && selectedUserId !== "unassign" && (
+              <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg">
+                <p className="text-sm text-emerald-800">
+                  <strong>{investor.activeUsers.find((u) => u.id.toString() === selectedUserId)?.name}</strong> will be assigned to this investor.
+                </p>
+              </div>
+            )}
+
+            {selectedUserId === "unassign" && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">
+                  Current assignment will be removed.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAssignDialogOpen(false)
+                setSelectedUserId("")
+              }}
+              disabled={assigning}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignUser}
+              disabled={!selectedUserId || assigning}
+              className="bg-emerald-600 hover:bg-emerald-700"
+            >
+              {assigning ? "Assigning..." : selectedUserId === "unassign" ? "Unassign" : "Assign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

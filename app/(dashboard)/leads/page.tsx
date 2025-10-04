@@ -6,7 +6,6 @@ async function getLeadsData() {
   const [leads, leadFields] = await Promise.all([
     prisma.leads.findMany({
       orderBy: { created_at: "desc" },
-      take: 100,
       include: {
         lead_field_values: {
           include: {

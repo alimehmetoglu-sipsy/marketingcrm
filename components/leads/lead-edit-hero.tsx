@@ -15,7 +15,7 @@ interface LeadEditHeroProps {
     phone: string
     source: string
     status: string
-    priority: string
+    priority: string | null
     created_at: Date | null
   }
   isSubmitting: boolean
@@ -41,8 +41,8 @@ const priorityConfig: Record<string, { color: string; bg: string; label: string;
 }
 
 export function LeadEditHero({ lead, isSubmitting, onSave, onCancel }: LeadEditHeroProps) {
-  const status = statusConfig[lead.status]
-  const priority = priorityConfig[lead.priority]
+  const status = statusConfig[lead.status] || statusConfig.new
+  const priority = lead.priority ? (priorityConfig[lead.priority] || priorityConfig.medium) : null
 
   const getInitials = (name: string) => {
     return name

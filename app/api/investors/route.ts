@@ -42,6 +42,33 @@ export async function POST(request: Request) {
     const body = await request.json()
     const { customFields, ...investorData } = body
 
+    // Validate required fields
+    const requiredFields = await prisma.investor_fields.findMany({
+      where: { is_required: true, is_active: true },
+      select: { id: true, name: true, label: true }
+    })
+
+    const missingFields: string[] = []
+
+    for (const field of requiredFields) {
+      const fieldValue = customFields?.[field.name] || customFields?.[field.id.toString()]
+
+      if (!fieldValue || (typeof fieldValue === 'string' && fieldValue.trim() === '')) {
+        missingFields.push(field.label)
+      }
+    }
+
+    if (missingFields.length > 0) {
+      return NextResponse.json(
+        {
+          error: "Required fields missing",
+          details: `Please fill in the following required fields: ${missingFields.join(', ')}`,
+          missingFields
+        },
+        { status: 400 }
+      )
+    }
+
     // Check for unique phone
     if (investorData.phone) {
       const existingPhone = await prisma.investors.findUnique({

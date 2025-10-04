@@ -229,8 +229,8 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
               </TableRow>
             ) : (
               filteredLeads.map((lead) => {
-                const status = statusConfig[lead.status]
-                const priority = priorityConfig[lead.priority]
+                const status = statusConfig[lead.status] || { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: lead.status }
+                const priority = lead.priority ? priorityConfig[lead.priority] : null
 
                 return (
                   <TableRow

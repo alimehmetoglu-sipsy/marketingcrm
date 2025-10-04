@@ -1,4 +1,5 @@
 import "next-auth"
+import { PermissionsStructure } from "@/lib/permissions"
 
 declare module "next-auth" {
   interface Session {
@@ -6,6 +7,9 @@ declare module "next-auth" {
       id: string
       email: string
       name: string
+      roleId?: string
+      roleName?: string
+      permissions?: PermissionsStructure
     }
   }
 
@@ -19,5 +23,8 @@ declare module "next-auth" {
 declare module "next-auth/jwt" {
   interface JWT {
     id: string
+    roleId?: string
+    roleName?: string
+    permissions?: PermissionsStructure
   }
 }

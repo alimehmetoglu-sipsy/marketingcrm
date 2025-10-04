@@ -17,12 +17,12 @@ async function main() {
     },
     {
       section_key: 'investment_details',
-      name: 'Investment Details',
+      name: 'Investor Details',
       is_visible: true,
       is_default_open: true,
       sort_order: 2,
       icon: 'briefcase',
-      gradient: 'bg-gradient-to-br from-blue-600 to-indigo-500',
+      gradient: 'bg-gradient-to-r from-emerald-50 to-teal-50',
     },
   ]
 

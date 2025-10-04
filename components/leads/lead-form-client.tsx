@@ -14,81 +14,21 @@ import {
   FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
-import { Textarea } from "@/components/ui/textarea"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Badge } from "@/components/ui/badge"
-import { Mail, User as UserIcon, ChevronDown, ChevronUp, TrendingUp, CheckCircle2, AlertCircle, Calendar, Clock } from "lucide-react"
-import { PhoneInput } from "@/components/ui/phone-input"
+import { Mail, User as UserIcon, ChevronDown, ChevronUp, TrendingUp, CheckCircle2 } from "lucide-react"
 import { LeadDynamicField } from "@/components/fields/lead-dynamic-field"
-import { LeadFormHeader } from "./lead-form-header"
 import { LeadFormProgress } from "./lead-form-progress"
 import { LeadEditHero } from "./lead-edit-hero"
-import { Separator } from "@/components/ui/separator"
-import { format, formatDistanceToNow } from "date-fns"
 import { cn } from "@/lib/utils"
 
-// Dynamic schema builder that includes custom fields validation
-const buildLeadSchema = (
-  customFields: CustomField[],
-  sourceRequired: boolean,
-  statusRequired: boolean,
-  priorityRequired: boolean
-) => {
-  // Base schema for contact info
-  const baseSchema: any = {
-    full_name: z.string().min(1, "Full name is required"),
-    email: z.string().email("Invalid email"),
-    phone: z.string().min(1, "Phone is required"),
-  }
+// Schema for new structure (only contact info, rest comes from dynamic fields)
+const leadSchema = z.object({
+  full_name: z.string().min(1, "Full name is required"),
+  email: z.string().email("Invalid email"),
+  phone: z.string().min(1, "Phone is required"),
+})
 
-  // Add custom fields to schema
-  const customFieldsSchema: any = {}
-
-  // Add system fields (source, status, priority)
-  if (sourceRequired) {
-    customFieldsSchema.source = z.string().min(1, "Source is required")
-  }
-  if (statusRequired) {
-    customFieldsSchema.status = z.string().min(1, "Status is required")
-  }
-  if (priorityRequired) {
-    customFieldsSchema.priority = z.string().min(1, "Priority is required")
-  }
-
-  // Add other custom fields
-  customFields.forEach((field) => {
-    if (field.is_required && !["source", "status", "priority"].includes(field.name)) {
-      const fieldKey = field.id.toString()
-
-      if (field.type === "email") {
-        customFieldsSchema[fieldKey] = z.string().email(`Invalid ${field.label}`)
-      } else if (field.type === "url") {
-        customFieldsSchema[fieldKey] = z.string().url(`Invalid ${field.label}`)
-      } else if (field.type === "number") {
-        customFieldsSchema[fieldKey] = z.string().min(1, `${field.label} is required`)
-      } else {
-        customFieldsSchema[fieldKey] = z.string().min(1, `${field.label} is required`)
-      }
-    }
-  })
-
-  return z.object({
-    ...baseSchema,
-    customFields: z.object(customFieldsSchema).optional(),
-  })
-}
-
-type LeadFormValues = {
-  full_name: string
-  email: string
-  phone: string
+type LeadFormValues = z.infer<typeof leadSchema> & {
   customFields?: Record<string, any>
 }
 
@@ -116,13 +56,13 @@ type Lead = {
   phone: string
   source: string
   status: string
-  priority: string
-  notes: string | null
+  priority: string | null
+  notes_text: string | null
   created_at: Date | null
   updated_at: Date | null
   lead_field_values?: Array<{
     lead_field_id: number
-    value: string
+    value: string | null
   }>
 }
 
@@ -140,12 +80,6 @@ type FormSection = {
 interface LeadFormClientProps {
   lead?: Lead
   customFields: CustomField[]
-  sources: Array<{ value: string; label: string }>
-  statuses: Array<{ value: string; label: string }>
-  priorities: Array<{ value: string; label: string }>
-  sourceRequired?: boolean
-  statusRequired?: boolean
-  priorityRequired?: boolean
 }
 
 interface CollapsibleSectionProps {
@@ -211,59 +145,57 @@ function CollapsibleSection({
   )
 }
 
-const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
-  new: { color: "text-blue-700", bg: "bg-blue-50 border-blue-200", label: "New" },
-  contacted: { color: "text-yellow-700", bg: "bg-yellow-50 border-yellow-200", label: "Contacted" },
-  qualified: { color: "text-green-700", bg: "bg-green-50 border-green-200", label: "Qualified" },
-  proposal: { color: "text-purple-700", bg: "bg-purple-50 border-purple-200", label: "Proposal" },
-  negotiation: { color: "text-orange-700", bg: "bg-orange-50 border-orange-200", label: "Negotiation" },
-  won: { color: "text-emerald-700", bg: "bg-emerald-50 border-emerald-200", label: "Won" },
-  lost: { color: "text-red-700", bg: "bg-red-50 border-red-200", label: "Lost" },
-}
-
-const priorityConfig: Record<string, { color: string; bg: string; label: string; icon: string }> = {
-  low: { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: "Low", icon: "○" },
-  medium: { color: "text-blue-700", bg: "bg-blue-50 border-blue-200", label: "Medium", icon: "◐" },
-  high: { color: "text-orange-700", bg: "bg-orange-50 border-orange-200", label: "High", icon: "●" },
-  urgent: { color: "text-red-700", bg: "bg-red-50 border-red-200", label: "Urgent", icon: "⚠" },
-}
-
 export function LeadFormClient({
   lead,
   customFields,
-  sources,
-  statuses,
-  priorities,
-  sourceRequired = true,
-  statusRequired = true,
-  priorityRequired = true,
 }: LeadFormClientProps) {
   const router = useRouter()
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [formSections, setFormSections] = useState<FormSection[]>([])
   const [customFieldValues, setCustomFieldValues] = useState<Record<string, any>>(
     () => {
-      const initialValues: Record<string, any> = {}
+      if (!lead) return {}
 
-      // Load custom field values from lead_field_values table
-      if (lead?.lead_field_values) {
-        lead.lead_field_values.forEach(fv => {
-          initialValues[fv.lead_field_id] = fv.value
-        })
-      }
+      // Start with values from lead_field_values
+      const values = lead.lead_field_values?.reduce(
+        (acc, fv) => {
+          // Find the field to check its type
+          const field = customFields.find(f => f.id === fv.lead_field_id)
+          let parsedValue = fv.value
 
-      // Load system fields (source, status, priority) from leads table
-      if (lead?.source) {
-        initialValues.source = lead.source
-      }
-      if (lead?.status) {
-        initialValues.status = lead.status
-      }
-      if (lead?.priority) {
-        initialValues.priority = lead.priority
-      }
+          // Parse JSON for multiselect fields
+          if (field && (field.type === 'multiselect' || field.type === 'multiselect_dropdown')) {
+            try {
+              parsedValue = JSON.parse(fv.value)
+            } catch (e) {
+              console.error('Error parsing field value:', e)
+              parsedValue = []
+            }
+          }
 
-      return initialValues
+          return {
+            ...acc,
+            [fv.lead_field_id]: parsedValue,
+          }
+        },
+        {} as Record<string, any>
+      ) || {}
+
+      // Add system fields from leads table if not in lead_field_values
+      customFields.forEach(field => {
+        // Only set if value doesn't already exist in values
+        if (!values[field.id]) {
+          if (field.name === 'priority' && lead.priority) {
+            values[field.id] = lead.priority
+          } else if (field.name === 'status' && lead.status) {
+            values[field.id] = lead.status
+          } else if (field.name === 'source' && lead.source) {
+            values[field.id] = lead.source
+          }
+        }
+      })
+
+      return values
     }
   )
 
@@ -271,21 +203,9 @@ export function LeadFormClient({
   useEffect(() => {
     fetch("/api/settings/lead-form-sections")
       .then((res) => res.json())
-      .then((data) => {
-        // Sort by sort_order
-        const sortedSections = data.sort((a: FormSection, b: FormSection) =>
-          a.sort_order - b.sort_order
-        )
-        setFormSections(sortedSections)
-      })
+      .then((data) => setFormSections(data))
       .catch((err) => console.error("Error fetching form sections:", err))
   }, [])
-
-  // Build dynamic schema with required field validation
-  const leadSchema = useMemo(
-    () => buildLeadSchema(customFields, sourceRequired, statusRequired, priorityRequired),
-    [customFields, sourceRequired, statusRequired, priorityRequired]
-  )
 
   const form = useForm<LeadFormValues>({
     resolver: zodResolver(leadSchema),
@@ -294,18 +214,11 @@ export function LeadFormClient({
           full_name: lead.full_name,
           email: lead.email,
           phone: lead.phone,
-          customFields: {
-            source: lead.source || "",
-            status: lead.status || "",
-            priority: lead.priority || "",
-          },
         }
       : {
           full_name: "",
           email: "",
           phone: "",
-          phone_country: "+90",
-          customFields: {},
         },
   })
 
@@ -368,37 +281,6 @@ export function LeadFormClient({
     router.push("/leads")
   }
 
-  const getIconComponent = (iconName: string) => {
-    switch (iconName) {
-      case "user":
-        return <UserIcon className="w-5 h-5 text-white" />
-      case "briefcase":
-        return (
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 13.255A23.931 23.931 0 0112 15c-3.183 0-6.22-.62-9-1.745M16 6V4a2 2 0 00-2-2h-4a2 2 0 00-2 2v2m4 6h.01M5 20h14a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" />
-          </svg>
-        )
-      case "document":
-        return (
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-          </svg>
-        )
-      case "layout":
-        return (
-          <svg className="w-5 h-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1H5a1 1 0 01-1-1V5zM14 5a1 1 0 011-1h4a1 1 0 011 1v7a1 1 0 01-1 1h-4a1 1 0 01-1-1V5zM4 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1H5a1 1 0 01-1-1v-3zM14 16a1 1 0 011-1h4a1 1 0 011 1v3a1 1 0 01-1 1h-4a1 1 0 01-1-1v-3z" />
-          </svg>
-        )
-      default:
-        return <UserIcon className="w-5 h-5 text-white" />
-    }
-  }
-
-  // Get fields for a specific section
-  const getFieldsForSection = (sectionKey: string) => {
-    return customFields.filter(f => f.section_key === sectionKey)
-  }
 
   return (
     <div className="h-full flex flex-col bg-gray-50">
@@ -532,7 +414,7 @@ export function LeadFormClient({
                     />
                   </CollapsibleSection>
 
-                  {/* Lead Details Section - All Fields Combined */}
+                  {/* Lead Details Section (all fields from lead_fields table) */}
                   <CollapsibleSection
                     title="Lead Details"
                     subtitle="Status, priority and additional information"
@@ -544,124 +426,8 @@ export function LeadFormClient({
                     gradient="bg-gradient-to-r from-blue-50 to-sky-50"
                   >
                     <div className="space-y-4">
-                      {/* Source Field */}
-                      <FormField
-                        control={form.control}
-                        name="customFields.source"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-gray-700 font-medium flex items-center gap-1">
-                              Source
-                              {sourceRequired && <span className="text-red-500">*</span>}
-                            </FormLabel>
-                            <Select
-                              value={field.value || customFieldValues.source || lead?.source || ""}
-                              onValueChange={(value) => {
-                                field.onChange(value)
-                                setCustomFieldValues({
-                                  ...customFieldValues,
-                                  source: value,
-                                })
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                                  <SelectValue placeholder="Select an option" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {sources.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Status Field */}
-                      <FormField
-                        control={form.control}
-                        name="customFields.status"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-gray-700 font-medium flex items-center gap-1">
-                              Status
-                              {statusRequired && <span className="text-red-500">*</span>}
-                            </FormLabel>
-                            <Select
-                              value={field.value || customFieldValues.status || lead?.status || ""}
-                              onValueChange={(value) => {
-                                field.onChange(value)
-                                setCustomFieldValues({
-                                  ...customFieldValues,
-                                  status: value,
-                                })
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                                  <SelectValue placeholder="Select an option" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {statuses.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* Priority Field */}
-                      <FormField
-                        control={form.control}
-                        name="customFields.priority"
-                        render={({ field }) => (
-                          <FormItem>
-                            <FormLabel className="text-gray-700 font-medium flex items-center gap-1">
-                              Priority
-                              {priorityRequired && <span className="text-red-500">*</span>}
-                            </FormLabel>
-                            <Select
-                              value={field.value || customFieldValues.priority || lead?.priority || ""}
-                              onValueChange={(value) => {
-                                field.onChange(value)
-                                setCustomFieldValues({
-                                  ...customFieldValues,
-                                  priority: value,
-                                })
-                              }}
-                            >
-                              <FormControl>
-                                <SelectTrigger className="border-gray-300 focus:border-blue-500 focus:ring-blue-500">
-                                  <SelectValue placeholder="Select an option" />
-                                </SelectTrigger>
-                              </FormControl>
-                              <SelectContent>
-                                {priorities.map((option) => (
-                                  <SelectItem key={option.value} value={option.value}>
-                                    {option.label}
-                                  </SelectItem>
-                                ))}
-                              </SelectContent>
-                            </Select>
-                            <FormMessage />
-                          </FormItem>
-                        )}
-                      />
-
-                      {/* All Custom Fields (excluding source, status, priority) */}
-                      {customFields
-                        .filter((field) => !["source", "status", "priority"].includes(field.name))
-                        .map((field) => (
+                      {/* All Dynamic Fields from lead_fields */}
+                      {customFields.map((field) => (
                           <LeadDynamicField
                             key={field.id}
                             field={field}

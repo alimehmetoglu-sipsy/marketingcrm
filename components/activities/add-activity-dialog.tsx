@@ -33,6 +33,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { toast } from "sonner"
 import { Loader2 } from "lucide-react"
+import { getActivityIconComponent } from "@/lib/activity-icons"
 
 const activityFormSchema = z.object({
   type: z.string().min(1, "Please select an activity type"),
@@ -52,6 +53,7 @@ interface ActivityType {
   icon: string | null
   color: string | null
   is_active: boolean
+  sort_order: number
 }
 
 const STATUS_OPTIONS = [
@@ -125,6 +127,9 @@ export function AddActivityDialog({
     setIsSubmitting(true)
 
     try {
+      // Find the selected activity type to get its ID
+      const selectedType = activityTypes.find(t => t.name === data.type)
+
       const response = await fetch("/api/activities", {
         method: "POST",
         headers: {
@@ -132,6 +137,7 @@ export function AddActivityDialog({
         },
         body: JSON.stringify({
           ...data,
+          activity_type_id: selectedType?.id,
           lead_id: leadId,
           investor_id: investorId,
         }),
@@ -184,11 +190,25 @@ export function AddActivityDialog({
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {activityTypes.map((type) => (
-                        <SelectItem key={type.id} value={type.name}>
-                          {type.label}
-                        </SelectItem>
-                      ))}
+                      {activityTypes.map((type) => {
+                        const IconComponent = getActivityIconComponent(type.icon)
+                        return (
+                          <SelectItem key={type.id} value={type.name}>
+                            <div className="flex items-center gap-2">
+                              <div
+                                className="flex items-center justify-center w-8 h-8 rounded"
+                                style={{ backgroundColor: type.color ? `${type.color}20` : '#f3f4f6' }}
+                              >
+                                <IconComponent
+                                  className="h-4 w-4"
+                                  style={{ color: type.color || '#6b7280' }}
+                                />
+                              </div>
+                              <span>{type.label}</span>
+                            </div>
+                          </SelectItem>
+                        )
+                      })}
                     </SelectContent>
                   </Select>
                   <FormMessage />
@@ -228,33 +248,35 @@ export function AddActivityDialog({
               )}
             />
 
-            <FormField
-              control={form.control}
-              name="lead_status"
-              render={({ field }) => (
-                <FormItem>
-                  <FormLabel>Lead Status</FormLabel>
-                  <Select
-                    onValueChange={field.onChange}
-                    value={field.value}
-                  >
-                    <FormControl>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Select lead status" />
-                      </SelectTrigger>
-                    </FormControl>
-                    <SelectContent>
-                      {STATUS_OPTIONS.map((option) => (
-                        <SelectItem key={option.value} value={option.value}>
-                          {option.label}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                  <FormMessage />
-                </FormItem>
-              )}
-            />
+            {leadId && (
+              <FormField
+                control={form.control}
+                name="lead_status"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Lead Status (Optional)</FormLabel>
+                    <Select
+                      onValueChange={field.onChange}
+                      value={field.value}
+                    >
+                      <FormControl>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Select lead status" />
+                        </SelectTrigger>
+                      </FormControl>
+                      <SelectContent>
+                        {STATUS_OPTIONS.map((option) => (
+                          <SelectItem key={option.value} value={option.value}>
+                            {option.label}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+            )}
 
             <DialogFooter>
               <Button

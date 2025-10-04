@@ -1,6 +1,9 @@
 import { prisma } from "@/lib/prisma"
 import { InvestorsTableWithFilters } from "@/components/investors/investors-table-with-filters"
 import { AddInvestorButton } from "@/components/investors/add-investor-button"
+import { auth } from "@/lib/auth-config"
+import { checkMenuPermission } from "@/lib/permissions"
+import { Unauthorized } from "@/components/unauthorized"
 
 async function getInvestorsData() {
   const [investors, investorFields] = await Promise.all([
@@ -73,6 +76,13 @@ async function getInvestorsData() {
 }
 
 export default async function InvestorsPage() {
+  const session = await auth()
+
+  // Check permission
+  if (!checkMenuPermission(session?.user?.permissions, "investors")) {
+    return <Unauthorized />
+  }
+
   const { investors, investorFields } = await getInvestorsData()
 
   return (

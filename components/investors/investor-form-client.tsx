@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation"
 import { useForm } from "react-hook-form"
 import { zodResolver } from "@hookform/resolvers/zod"
 import * as z from "zod"
+import type { Investor } from "@/types/investor"
 import {
   Form,
   FormControl,
@@ -60,22 +61,7 @@ type CustomField = {
   }>
 }
 
-type Investor = {
-  id: number
-  full_name: string
-  email: string
-  phone: string
-  source: string
-  status: string
-  priority: string
-  notes: string | null
-  created_at: Date | null
-  updated_at: Date | null
-  investor_field_values?: Array<{
-    investor_field_id: number
-    value: string
-  }>
-}
+// Investor type is now imported from @/types/investor
 
 type FormSection = {
   id: number
@@ -182,10 +168,29 @@ export function InvestorFormClient({
 
       // Start with values from investor_field_values
       const values = investor.investor_field_values?.reduce(
-        (acc, fv) => ({
-          ...acc,
-          [fv.investor_field_id]: fv.value,
-        }),
+        (acc, fv) => {
+          // Find the field to check its type
+          const field = customFields.find(f => f.id === fv.investor_field_id)
+          let parsedValue: any = fv.value
+
+          // Parse JSON for multiselect fields
+          if (field && (field.type === 'multiselect' || field.type === 'multiselect_dropdown')) {
+            try {
+              parsedValue = fv.value ? JSON.parse(fv.value) : []
+            } catch (e) {
+              console.error('Error parsing field value:', e)
+              parsedValue = []
+            }
+          }
+
+          if (fv.investor_field_id) {
+            return {
+              ...acc,
+              [fv.investor_field_id]: parsedValue,
+            }
+          }
+          return acc
+        },
         {} as Record<string, any>
       ) || {}
 
@@ -221,7 +226,7 @@ export function InvestorFormClient({
       ? {
           full_name: investor.full_name,
           email: investor.email,
-          phone: investor.phone,
+          phone: investor.phone || "",
         }
       : {
           full_name: "",

@@ -105,19 +105,15 @@ export async function POST(request: Request) {
       select: { id: true }
     })
 
-    // Extract system field values - check both by name and by ID
-    // Only use default values for required fields (source and status)
-    const sourceValue = customFields?.["source"] ||
-                       (sourceFieldId && customFields?.[sourceFieldId.id.toString()]) ||
-                       "website"
-    const statusValue = customFields?.["status"] ||
-                       (statusFieldId && customFields?.[statusFieldId.id.toString()]) ||
-                       "new"
-
-    // Priority is optional - only set if provided by user, otherwise null
-    const priorityValue = customFields?.["priority"] ||
-                         (priorityFieldId && customFields?.[priorityFieldId.id.toString()]) ||
-                         null
+    const sourceValue = sourceFieldId && customFields?.[sourceFieldId.id.toString()]
+      ? customFields[sourceFieldId.id.toString()]
+      : "website"
+    const statusValue = statusFieldId && customFields?.[statusFieldId.id.toString()]
+      ? customFields[statusFieldId.id.toString()]
+      : "new"
+    const priorityValue = priorityFieldId && customFields?.[priorityFieldId.id.toString()]
+      ? customFields[priorityFieldId.id.toString()]
+      : null
 
     const lead = await prisma.leads.create({
       data: {
@@ -133,12 +129,22 @@ export async function POST(request: Request) {
       },
     })
 
-    // Save custom field values
+    // Save custom field values (exclude system fields from field_values table)
     if (customFields && typeof customFields === "object") {
+      // Get system field IDs to exclude from lead_field_values
+      const systemFieldIds = [
+        sourceFieldId?.id.toString(),
+        statusFieldId?.id.toString(),
+        priorityFieldId?.id.toString()
+      ].filter(Boolean)
+
       const fieldValues = Object.entries(customFields)
         .filter(([fieldId, value]) => {
-          // Filter out system fields (source, status, priority) and empty values
+          // Filter out system fields by name
           if (["source", "status", "priority"].includes(fieldId)) return false
+          // Filter out system fields by ID
+          if (systemFieldIds.includes(fieldId)) return false
+          // Filter out empty values
           if (value === null || value === undefined || value === "") return false
           return true
         })
