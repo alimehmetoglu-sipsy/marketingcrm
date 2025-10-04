@@ -53,7 +53,7 @@ export function UserFormDialog({ open, onOpenChange, user, roles, onSuccess }: U
         email: user.email,
         phone: user.phone || "",
         password: "", // Don't show password
-        role_id: user.role_id,
+        role_id: user.role_id ?? null,
         status: user.status,
       })
     } else {

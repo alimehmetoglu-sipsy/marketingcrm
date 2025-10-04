@@ -25,8 +25,8 @@ CREATE TABLE `activities` (
   `id` bigint unsigned NOT NULL AUTO_INCREMENT,
   `lead_id` bigint unsigned DEFAULT NULL,
   `investor_id` bigint unsigned DEFAULT NULL,
-  `representative_id` bigint unsigned DEFAULT NULL,
-  `user_id` bigint unsigned DEFAULT NULL,
+  `assigned_to` bigint unsigned DEFAULT NULL,      -- FK to users (assigned user)
+  `user_id` bigint unsigned DEFAULT NULL,          -- FK to users (creator)
   `type` varchar(255) NOT NULL,                    -- Activity type name (call, email, meeting)
   `activity_type_id` bigint unsigned DEFAULT NULL, -- FK to activity_types
   `subject` varchar(255) DEFAULT NULL,
@@ -40,12 +40,12 @@ CREATE TABLE `activities` (
   PRIMARY KEY (`id`),
   KEY `activities_lead_id_foreign` (`lead_id`),
   KEY `activities_investor_id_foreign` (`investor_id`),
-  KEY `activities_representative_id_foreign` (`representative_id`),
+  KEY `activities_assigned_to_foreign` (`assigned_to`),
   KEY `activities_user_id_foreign` (`user_id`),
   KEY `activities_activity_type_id_foreign` (`activity_type_id`),
   CONSTRAINT `activities_lead_id_foreign` FOREIGN KEY (`lead_id`) REFERENCES `leads` (`id`) ON DELETE CASCADE,
   CONSTRAINT `activities_investor_id_foreign` FOREIGN KEY (`investor_id`) REFERENCES `investors` (`id`) ON DELETE CASCADE,
-  CONSTRAINT `activities_representative_id_foreign` FOREIGN KEY (`representative_id`) REFERENCES `representatives` (`id`),
+  CONSTRAINT `activities_assigned_to_foreign` FOREIGN KEY (`assigned_to`) REFERENCES `users` (`id`),
   CONSTRAINT `activities_user_id_foreign` FOREIGN KEY (`user_id`) REFERENCES `users` (`id`),
   CONSTRAINT `activities_activity_type_id_foreign` FOREIGN KEY (`activity_type_id`) REFERENCES `activity_types` (`id`) ON DELETE SET NULL
 );
@@ -57,8 +57,8 @@ CREATE TABLE `activities` (
 |------------|--------|------------|-----------|
 | `activities_lead_id_foreign` | `lead_id` | `leads.id` | CASCADE |
 | `activities_investor_id_foreign` | `investor_id` | `investors.id` | CASCADE |
-| `activities_representative_id_foreign` | `representative_id` | `representatives.id` | RESTRICT |
-| `activities_user_id_foreign` | `user_id` | `users.id` | RESTRICT |
+| `activities_assigned_to_foreign` | `assigned_to` | `users.id` (assigned user) | RESTRICT |
+| `activities_user_id_foreign` | `user_id` | `users.id` (creator) | RESTRICT |
 | `activities_activity_type_id_foreign` | `activity_type_id` | `activity_types.id` | SET NULL |
 
 ---
@@ -100,7 +100,7 @@ model activities {
   id               BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
   lead_id          BigInt?           @db.UnsignedBigInt
   investor_id      BigInt?           @db.UnsignedBigInt
-  representative_id BigInt?          @db.UnsignedBigInt
+  assigned_to      BigInt?           @db.UnsignedBigInt
   user_id          BigInt?           @db.UnsignedBigInt
   type             String            @db.VarChar(255)
   activity_type_id BigInt?           @db.UnsignedBigInt
@@ -116,14 +116,14 @@ model activities {
   // Relations
   leads            leads?            @relation(fields: [lead_id], references: [id], onDelete: Cascade)
   investors        investors?        @relation(fields: [investor_id], references: [id], onDelete: Cascade)
-  representatives  representatives?  @relation(fields: [representative_id], references: [id])
-  users            users?            @relation(fields: [user_id], references: [id])
+  assignedUser     users?            @relation("activity_assigned_to", fields: [assigned_to], references: [id])
+  users            users?            @relation("activity_created_by", fields: [user_id], references: [id])
   activity_types   activity_types?   @relation(fields: [activity_type_id], references: [id], onDelete: SetNull)
 
   // Indexes
   @@index([lead_id])
   @@index([investor_id])
-  @@index([representative_id])
+  @@index([assigned_to])
   @@index([user_id])
   @@index([activity_type_id])
 }
@@ -169,7 +169,7 @@ enum activities_status {
 | `id` | BigInt | No | Primary key |
 | `lead_id` | BigInt | Yes | Lead reference (cascade on delete) |
 | `investor_id` | BigInt | Yes | Investor reference (cascade on delete) |
-| `representative_id` | BigInt | Yes | Representative assigned to activity |
+| `assigned_to` | BigInt | Yes | User assigned to activity |
 | `user_id` | BigInt | Yes | User who created/owns the activity |
 | `type` | String | No | Activity type name (from activity_types.name) |
 | `activity_type_id` | BigInt | Yes | FK to activity_types for icon/color (SET NULL on delete) |

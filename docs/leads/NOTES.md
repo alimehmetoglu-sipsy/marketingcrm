@@ -26,7 +26,7 @@
 const serializedLead = {
   ...lead,
   id: Number(lead.id),
-  representative_id: lead.representative_id ? Number(lead.representative_id) : null
+  assigned_to: lead.assigned_to ? Number(lead.assigned_to) : null
 }
 
 return NextResponse.json(serializedLead)
@@ -264,7 +264,7 @@ TypeError: Do not know how to serialize a BigInt
 const serialized = leads.map(lead => ({
   ...lead,
   id: Number(lead.id),
-  representative_id: lead.representative_id ? Number(lead.representative_id) : null,
+  assigned_to: lead.assigned_to ? Number(lead.assigned_to) : null,
   activity_id: lead.activity_id ? Number(lead.activity_id) : null
 }))
 

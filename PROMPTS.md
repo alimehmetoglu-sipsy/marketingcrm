@@ -167,9 +167,8 @@ Modül: Investors
 Tablolar: investors, investor_fields, investor_field_options, investor_field_values, investor_form_sections
 Components: InvestorForm, InvestorsList, InvestorDetail, AddInvestorButton
 Endpoints: /api/investors, /api/settings/investor-fields
-Representatives Modülü
-Representatives modülü için dokümantasyon oluştur.
-Modül: Representatives
-Tablolar: representatives
-Components: RepresentativeForm, RepresentativesList, RepresentativeDetail
-Endpoints: /api/representatives
+
+~~Representatives Modülü~~ (REMOVED - Merged with Users)
+**Note:** Representatives table has been removed and merged with users table.
+All assignment functionality now uses the `users` table with `assigned_to` field.
+See CLAUDE.md for details on the user dual-purpose architecture (login + assignment).

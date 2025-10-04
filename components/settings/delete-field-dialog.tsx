@@ -67,7 +67,7 @@ export function DeleteFieldDialog({
           <AlertDialogHeader>
             <AlertDialogTitle>Cannot Delete System Field</AlertDialogTitle>
             <AlertDialogDescription>
-              The field "{field.label}" is a system field and cannot be deleted.
+              The field &quot;{field.label}&quot; is a system field and cannot be deleted.
               System fields are required for the CRM to function properly.
             </AlertDialogDescription>
           </AlertDialogHeader>
@@ -85,7 +85,7 @@ export function DeleteFieldDialog({
         <AlertDialogHeader>
           <AlertDialogTitle>Delete Property</AlertDialogTitle>
           <AlertDialogDescription>
-            Are you sure you want to delete "{field.label}"? This action cannot be
+            Are you sure you want to delete &quot;{field.label}&quot;? This action cannot be
             undone and all data stored in this field will be permanently removed.
           </AlertDialogDescription>
         </AlertDialogHeader>

@@ -560,28 +560,32 @@ if (lead_id) {
 }
 ```
 
-### Representative & User Assignment
+### User Assignment
 
-Activities can be assigned to representatives and users:
+Activities can be assigned to users (both creator and assignee):
 
 ```typescript
 const activity = await prisma.activities.create({
   data: {
     // ...
-    representative_id: BigInt(5),  // Assigned representative
-    user_id: BigInt(10),           // Activity owner/creator
+    assigned_to: BigInt(5),  // Assigned user
+    user_id: BigInt(10),     // Activity creator
+  },
+  include: {
+    assignedUser: true,  // Get assigned user details
+    users: true,         // Get creator details
   }
 })
 ```
 
-**Future UI implementation:**
+**UI implementation:**
 
 ```typescript
-<FormField name="representative_id">
+<FormField name="assigned_to">
   <Select>
-    {representatives.map((rep) => (
-      <SelectItem key={rep.id} value={rep.id}>
-        {rep.name}
+    {users.map((user) => (
+      <SelectItem key={user.id} value={user.id}>
+        {user.name}
       </SelectItem>
     ))}
   </Select>
@@ -633,8 +637,8 @@ const call = await prisma.activities.create({
 | Lead | Activities deleted | CASCADE |
 | Investor | Activities deleted | CASCADE |
 | Activity Type | activity_type_id set to NULL | SET NULL |
-| Representative | Delete prevented if activities exist | RESTRICT |
-| User | Delete prevented if activities exist | RESTRICT |
+| User (assigned_to) | Delete prevented if activities exist | RESTRICT |
+| User (user_id) | Delete prevented if activities exist | RESTRICT |
 
 **Example:**
 

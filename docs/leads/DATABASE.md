@@ -29,7 +29,7 @@ CREATE TABLE `leads` (
   `phone` VARCHAR(255) NOT NULL UNIQUE,
   `source` VARCHAR(50) NOT NULL DEFAULT 'website',
   `status` VARCHAR(50) NOT NULL DEFAULT 'new',
-  `representative_id` BIGINT UNSIGNED NULL,
+  `assigned_to` BIGINT UNSIGNED NULL,
   `priority` VARCHAR(50) NULL,
   `notes` TEXT NULL,
   `activity_id` BIGINT UNSIGNED NULL,
@@ -40,7 +40,7 @@ CREATE TABLE `leads` (
   UNIQUE INDEX `leads_phone_unique` (`phone`),
   INDEX `idx_leads_status` (`status`),
   INDEX `idx_leads_created_at` (`created_at`),
-  INDEX `idx_leads_representative` (`representative_id`),
+  INDEX `idx_leads_assigned_to` (`assigned_to`),
   INDEX `leads_created_at_status_index` (`created_at`, `status`),
   INDEX `leads_priority_status_index` (`priority`, `status`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -213,7 +213,7 @@ model leads {
   phone             String              @unique(map: "leads_phone_unique") @db.VarChar(255)
   source            String              @default("website") @db.VarChar(50)
   status            String              @default("new") @db.VarChar(50)
-  representative_id BigInt?             @db.UnsignedBigInt
+  assigned_to       BigInt?             @db.UnsignedBigInt
   priority          String?             @db.VarChar(50)
   notes_text        String?             @db.Text @map("notes")
   activity_id       BigInt?             @db.UnsignedBigInt
@@ -225,10 +225,11 @@ model leads {
   investors         investors[]
   lead_field_values lead_field_values[]
   notes             notes[]
+  assignedUser      users?              @relation("lead_assigned_to", fields: [assigned_to], references: [id])
 
   @@index([created_at], map: "idx_leads_created_at")
-  @@index([representative_id, status], map: "idx_leads_rep_status")
-  @@index([representative_id], map: "idx_leads_representative")
+  @@index([assigned_to, status], map: "idx_leads_assigned_status")
+  @@index([assigned_to], map: "idx_leads_assigned_to")
   @@index([status], map: "idx_leads_status")
   @@index([status, created_at], map: "idx_leads_status_created")
   @@index([created_at, status], map: "leads_created_at_status_index")
@@ -506,7 +507,7 @@ const lead = await prisma.leads.findUnique({
 const serialized = {
   ...lead,
   id: Number(lead.id),
-  representative_id: lead.representative_id ? Number(lead.representative_id) : null,
+  assigned_to: lead.assigned_to ? Number(lead.assigned_to) : null,
 }
 
 // ❌ Bad - Will cause serialization error

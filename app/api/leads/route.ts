@@ -19,7 +19,6 @@ export async function GET() {
     const serializedLeads = leads.map(lead => ({
       ...lead,
       id: Number(lead.id),
-      representative_id: lead.representative_id ? Number(lead.representative_id) : null,
       activity_id: lead.activity_id ? Number(lead.activity_id) : null,
     }))
 
@@ -166,7 +165,6 @@ export async function POST(request: Request) {
     return NextResponse.json({
       ...lead,
       id: Number(lead.id),
-      representative_id: lead.representative_id ? Number(lead.representative_id) : null,
       activity_id: lead.activity_id ? Number(lead.activity_id) : null,
     }, { status: 201 })
   } catch (error: any) {

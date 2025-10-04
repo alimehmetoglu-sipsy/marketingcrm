@@ -139,11 +139,19 @@ npm run dev
 ### Ana Tablolar
 
 #### 1. **users**
-Sistem kullanıcıları
+Sistem kullanıcıları - Dual kullanım:
+- **Login & Authentication:** CRM çalışanları sisteme giriş yapar
+- **Assignment:** Lead, Investor ve Activity'lere atanabilir
 ```
 - id, name, email, password
 - phone, tc_no, address
 - status, created_at, updated_at
+
+İlişkiler:
+- activitiesCreated[] - Oluşturduğu aktiviteler (user_id)
+- activitiesAssigned[] - Atanan aktiviteler (assigned_to)
+- branchesManaged[] - Yönettiği şubeler (manager_id)
+- notesCreated[] - Oluşturduğu notlar
 ```
 
 #### 2. **leads**
@@ -163,6 +171,23 @@ Yatırımcılar
 - source, status, priority
 - budget, timeline, notes
 - created_at, updated_at
+```
+
+#### 4. **activities**
+Lead ve Investor aktiviteleri
+```
+- id, type, subject, description
+- status (pending, completed, cancelled)
+- lead_id, investor_id (foreign keys)
+- user_id - Aktiviteyi oluşturan user (creator)
+- assigned_to - Aktiviteye atanan user (assignee)
+- activity_type_id, activity_date
+- scheduled_at, completed_at
+- created_at, updated_at
+
+Not: user_id ve assigned_to aynı kişi olabilir veya farklı olabilir
+- Ali (user) bir aktivite oluşturur (user_id = Ali)
+- Aktivite Mehmet'e atanır (assigned_to = Mehmet)
 ```
 
 ### Dynamic Field System
@@ -432,7 +457,42 @@ sectionFields = allFields.filter(
   - Investment Amount
   - Tüm custom fields
 
-### 4. Form Layout Configurator
+### 4. Activity Management
+
+#### Activity Hub (`/activities`)
+- **Lokasyon:** `/activities/page.tsx` + `components/activities/activities-client.tsx`
+- **Modern Hero Header:** Gradient background (indigo-purple-pink)
+- **Stats Cards:**
+  - Total Activities
+  - Most Active Type
+  - Completed Count
+  - Pending Count
+- **Filters:**
+  - Activity Type (call, email, meeting, etc.)
+  - Status (pending, completed, cancelled)
+  - Source (lead/investor)
+  - Created By (user filter)
+  - Search (subject, description, lead/investor name)
+- **View Modes:** Grid & Timeline
+- **Activity Cards:**
+  - Activity type icon with color
+  - Subject & description
+  - Status badge
+  - Source (Lead/Investor) with link
+  - **Created By:** Kim oluşturdu (users.name)
+  - **Assigned To:** Kime atandı (assignedUser.name)
+
+**Veri Yapısı:**
+```typescript
+activity {
+  user_id: 1,          // Ali (oluşturan)
+  assigned_to: 2,      // Mehmet (atanan)
+  users: { name: "Ali" },
+  assignedUser: { name: "Mehmet" }
+}
+```
+
+### 5. Form Layout Configurator
 
 #### Özellikler:
 - **Section Management:**
@@ -459,12 +519,33 @@ sectionFields = allFields.filter(
 }
 ```
 
-### 5. Authentication
+### 6. Authentication
 
 - **Provider:** NextAuth v5
 - **Strategy:** Credentials
 - **Session:** JWT
 - **Protection:** Middleware-based route protection
+
+### 7. User Management
+
+**Users Tablosu Kullanım Alanları:**
+1. **Login & Authentication:**
+   - Email/Password ile giriş
+   - Session yönetimi
+   - Role-based permissions
+
+2. **Assignment System:**
+   - Lead Assignment: Lead'leri kullanıcılara atama
+   - Investor Assignment: Investor'ları kullanıcılara atama
+   - Activity Assignment: Aktiviteleri kullanıcılara atama
+   - Branch Manager: Şube yöneticisi ataması
+
+3. **Activity Tracking:**
+   - Created By: Kullanıcının oluşturduğu aktiviteler
+   - Assigned To: Kullanıcıya atanan aktiviteler
+   - Notes: Kullanıcının oluşturduğu notlar
+
+**Not:** Eski "representatives" tablosu kaldırıldı, tüm atama işlemleri artık "users" tablosu üzerinden yapılıyor.
 
 ---
 
@@ -559,6 +640,11 @@ sectionFields = allFields.filter(
 - `GET /api/investors/[id]` - Get investor
 - `PUT /api/investors/[id]` - Update investor
 - `DELETE /api/investors/[id]` - Delete investor
+
+### Activities
+- `GET /api/activities` - List activities (with filters: lead_id, investor_id, type, status, user_id, source, search)
+- `POST /api/activities` - Create activity
+- Response includes: assignedUser (assigned_to user), users (creator user)
 
 ### Settings - Lead Fields
 - `GET /api/settings/lead-fields` - List fields

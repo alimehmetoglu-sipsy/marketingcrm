@@ -86,7 +86,7 @@ GET /api/investors
     "investment_preferences": "Tech startups",
     "risk_tolerance": "medium",
     "communication_preferences": "email",
-    "representative_id": null,
+    "assigned_to": null,
     "source": "referral",
     "last_activity_at": "2025-10-03T10:00:00.000Z",
     "activity_status": "active",
@@ -110,7 +110,7 @@ GET /api/investors
 | `status` | string | Current status (default: "potential") |
 | `priority` | string \| null | Priority level |
 | `source` | string | Source of investor (default: "other") |
-| `representative_id` | number \| null | Assigned representative ID |
+| `assigned_to` | number \| null | Assigned user ID |
 | `created_by` | number \| null | User ID who created the record |
 | `updated_by` | number \| null | User ID who last updated the record |
 
@@ -157,7 +157,7 @@ GET /api/investors/{id}
   "timeline": "Q1 2025",
   "notes": "High potential investor",
   "source": "referral",
-  "representative_id": null,
+  "assigned_to": null,
   "created_by": 1,
   "updated_by": 1,
   "created_at": "2025-10-01T10:00:00.000Z",
@@ -259,7 +259,7 @@ These system fields can be provided via `customFields` using their field IDs:
   "status": "potential",
   "priority": null,
   "notes": null,
-  "representative_id": null,
+  "assigned_to": null,
   "created_by": null,
   "updated_by": null,
   "created_at": "2025-10-04T10:00:00.000Z",
@@ -398,7 +398,7 @@ System fields (source, status, priority) can be updated in two ways:
   "status": "active",
   "priority": "high",
   "notes": "Updated notes",
-  "representative_id": null,
+  "assigned_to": null,
   "created_by": null,
   "updated_by": null,
   "created_at": "2025-10-01T10:00:00.000Z",
@@ -581,7 +581,7 @@ interface Investor {
   investment_preferences: string | null // TEXT
   risk_tolerance: 'low' | 'medium' | 'high' | 'very_high' | null
   communication_preferences: 'email' | 'phone' | 'meeting' | 'video_call' | null
-  representative_id: number | null // BigInt converted to number
+  assigned_to: number | null // BigInt converted to number
   source: string                  // VARCHAR(255), DEFAULT 'other'
   last_activity_at: string | null // ISO 8601 timestamp
   activity_status: 'active' | 'inactive' // ENUM, DEFAULT 'active'
@@ -798,7 +798,7 @@ const serialized = {
   ...investor,
   id: Number(investor.id),
   lead_id: investor.lead_id ? Number(investor.lead_id) : null,
-  representative_id: investor.representative_id ? Number(investor.representative_id) : null,
+  assigned_to: investor.assigned_to ? Number(investor.assigned_to) : null,
   created_by: investor.created_by ? Number(investor.created_by) : null,
   updated_by: investor.updated_by ? Number(investor.updated_by) : null,
 }
@@ -815,7 +815,7 @@ const serialized = investors.map(investor => ({
   ...investor,
   id: Number(investor.id),
   lead_id: investor.lead_id ? Number(investor.lead_id) : null,
-  representative_id: investor.representative_id ? Number(investor.representative_id) : null,
+  assigned_to: investor.assigned_to ? Number(investor.assigned_to) : null,
   created_by: investor.created_by ? Number(investor.created_by) : null,
   updated_by: investor.updated_by ? Number(investor.updated_by) : null,
 }))
@@ -829,7 +829,7 @@ return NextResponse.json(serialized)
 |-------|------------|------------------|
 | `id` | BIGINT | number |
 | `lead_id` | BIGINT | number \| null |
-| `representative_id` | BIGINT | number \| null |
+| `assigned_to` | BIGINT | number \| null |
 | `created_by` | BIGINT | number \| null |
 | `updated_by` | BIGINT | number \| null |
 | `investor_field_id` | BIGINT | number |
@@ -1182,7 +1182,7 @@ export async function POST(request: Request) {
       ...investor,
       id: Number(investor.id),
       lead_id: investor.lead_id ? Number(investor.lead_id) : null,
-      representative_id: investor.representative_id ? Number(investor.representative_id) : null,
+      assigned_to: investor.assigned_to ? Number(investor.assigned_to) : null,
       created_by: investor.created_by ? Number(investor.created_by) : null,
       updated_by: investor.updated_by ? Number(investor.updated_by) : null,
     }, { status: 201 })

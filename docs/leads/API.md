@@ -78,7 +78,7 @@
     "notes_text": "Interested in real estate",
     "created_at": "2025-01-04T10:30:00.000Z",
     "updated_at": "2025-01-04T10:30:00.000Z",
-    "representative_id": null,
+    "assigned_to": null,
     "activity_id": null
   },
   // ... more leads
@@ -151,7 +151,7 @@
   "notes_text": null,
   "created_at": "2025-01-04T10:30:00.000Z",
   "updated_at": "2025-01-04T10:30:00.000Z",
-  "representative_id": null,
+  "assigned_to": null,
   "activity_id": null
 }
 ```

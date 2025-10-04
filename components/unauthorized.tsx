@@ -17,7 +17,7 @@ export function Unauthorized() {
           </div>
           <CardTitle className="text-2xl">Unauthorized Access</CardTitle>
           <CardDescription>
-            You don't have permission to access this page.
+            You don&apos;t have permission to access this page.
           </CardDescription>
         </CardHeader>
         <CardContent className="flex flex-col gap-2">

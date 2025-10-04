@@ -134,7 +134,7 @@ async function getInvestor(id: string) {
     id: Number(activity.id),
     lead_id: activity.lead_id ? Number(activity.lead_id) : null,
     investor_id: activity.investor_id ? Number(activity.investor_id) : null,
-    representative_id: activity.representative_id ? Number(activity.representative_id) : null,
+    assigned_to: activity.assigned_to ? Number(activity.assigned_to) : null,
     user_id: activity.user_id ? Number(activity.user_id) : null,
   }))
 

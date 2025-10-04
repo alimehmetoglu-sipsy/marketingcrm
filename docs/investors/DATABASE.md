@@ -41,7 +41,7 @@ CREATE TABLE `investors` (
   `investment_preferences` TEXT NULL,
   `risk_tolerance` ENUM('low', 'medium', 'high', 'very_high') NULL,
   `communication_preferences` ENUM('email', 'phone', 'meeting', 'video_call') NULL,
-  `representative_id` BIGINT UNSIGNED NULL,
+  `assigned_to` BIGINT UNSIGNED NULL,
   `source` VARCHAR(255) NOT NULL DEFAULT 'other',
   `last_activity_at` TIMESTAMP NULL,
   `activity_status` ENUM('active', 'inactive') NOT NULL DEFAULT 'active',
@@ -52,7 +52,7 @@ CREATE TABLE `investors` (
   UNIQUE INDEX `investors_phone_unique` (`phone`),
   INDEX `idx_investors_status` (`status`),
   INDEX `idx_investors_created_at` (`created_at`),
-  INDEX `idx_investors_representative` (`representative_id`),
+  INDEX `idx_investors_assigned_to` (`assigned_to`),
   INDEX `investors_email_index` (`email`),
   FOREIGN KEY (`lead_id`) REFERENCES `leads` (`id`) ON UPDATE NO ACTION
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

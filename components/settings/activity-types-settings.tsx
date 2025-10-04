@@ -143,9 +143,6 @@ function SortableRow({ type, onEdit, onDelete }: SortableRowProps) {
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const status = statusConfig[type.status]
-  const priority = priorityConfig[type.priority]
-
   return (
     <TableRow ref={setNodeRef} style={style} className="hover:bg-gray-50">
       <TableCell>

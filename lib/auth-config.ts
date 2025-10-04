@@ -1,4 +1,6 @@
 import NextAuth from "next-auth"
+import type { JWT } from "next-auth/jwt"
+import type { User } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "./prisma"
 import bcrypt from "bcryptjs"
@@ -44,13 +46,13 @@ const authConfig = {
     })
   ],
   session: {
-    strategy: "jwt",
+    strategy: "jwt" as const,
   },
   pages: {
     signIn: "/login",
   },
   callbacks: {
-    async jwt({ token, user }) {
+    async jwt({ token, user }: { token: JWT; user?: User }) {
       if (user) {
         token.id = user.id
 
@@ -63,12 +65,12 @@ const authConfig = {
         if (userWithRole?.roles) {
           token.roleId = userWithRole.role_id?.toString()
           token.roleName = userWithRole.roles.name
-          token.permissions = userWithRole.roles.permissions
+          token.permissions = userWithRole.roles.permissions as any
         }
       }
       return token
     },
-    async session({ session, token }) {
+    async session({ session, token }: { session: any; token: JWT }) {
       if (session.user) {
         session.user.id = token.id as string
         session.user.roleId = token.roleId as string | undefined

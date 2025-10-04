@@ -56,7 +56,7 @@ Content-Type: application/json
     id: number
     lead_id: number | null
     investor_id: number | null
-    representative_id: number | null
+    assigned_to: number | null
     user_id: number | null
     type: string
     activity_type_id: number | null
@@ -237,7 +237,7 @@ GET /api/activities?lead_id={leadId}&investor_id={investorId}
       id: number
       lead_id: number | null
       investor_id: number | null
-      representative_id: number | null
+      assigned_to: number | null
       user_id: number | null
       type: string
       activity_type_id: number | null
@@ -259,6 +259,11 @@ GET /api/activities?lead_id={leadId}&investor_id={investorId}
       }
       investors?: {
         full_name: string
+        email: string
+      }
+      assignedUser?: {
+        id: number
+        name: string
         email: string
       }
     }

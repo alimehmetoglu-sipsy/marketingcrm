@@ -161,12 +161,12 @@ export function LeadFormClient({
         (acc, fv) => {
           // Find the field to check its type
           const field = customFields.find(f => f.id === fv.lead_field_id)
-          let parsedValue = fv.value
+          let parsedValue: any = fv.value
 
           // Parse JSON for multiselect fields
           if (field && (field.type === 'multiselect' || field.type === 'multiselect_dropdown')) {
             try {
-              parsedValue = JSON.parse(fv.value)
+              parsedValue = fv.value ? JSON.parse(fv.value) : []
             } catch (e) {
               console.error('Error parsing field value:', e)
               parsedValue = []
@@ -228,7 +228,7 @@ export function LeadFormClient({
     const requiredFields = ["full_name", "email", "phone"]
 
     let completed = 0
-    let total = requiredFields.length + customFields.length
+    const total = requiredFields.length + customFields.length
 
     // Count required contact fields
     requiredFields.forEach(field => {

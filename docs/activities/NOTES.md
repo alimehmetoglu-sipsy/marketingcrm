@@ -30,7 +30,7 @@ const serialized = activities.map(activity => ({
   lead_id: activity.lead_id ? Number(activity.lead_id) : null,
   investor_id: activity.investor_id ? Number(activity.investor_id) : null,
   activity_type_id: activity.activity_type_id ? Number(activity.activity_type_id) : null,
-  representative_id: activity.representative_id ? Number(activity.representative_id) : null,
+  assigned_to: activity.assigned_to ? Number(activity.assigned_to) : null,
   user_id: activity.user_id ? Number(activity.user_id) : null,
 }))
 ```
@@ -200,31 +200,31 @@ UNIQUE KEY `activity_types_name_unique` (`name`)
 
 ---
 
-### 7. Representative & User Assignment
+### 7. User Assignment (Creator & Assignee)
 
-**Current Status:** Database schema'da mevcut ama UI'da henüz implement edilmedi.
+**Current Status:** Database schema'da mevcut, UI'da kısmi implement edildi.
 
 **Schema:**
 ```typescript
-representative_id BigInt?
-user_id          BigInt?
+assigned_to BigInt?  // Assigned user
+user_id     BigInt?  // Creator user
 ```
 
-**Future Implementation:**
+**Implementation:**
 ```typescript
-// Dialog form'a eklenecek
-<FormField name="representative_id">
+// Dialog form'da assigned_to field
+<FormField name="assigned_to">
   <Select>
-    {representatives.map((rep) => (
-      <SelectItem value={rep.id}>{rep.name}</SelectItem>
+    {users.map((user) => (
+      <SelectItem value={user.id}>{user.name}</SelectItem>
     ))}
   </Select>
 </FormField>
 ```
 
 **Use Cases:**
-- `representative_id`: Aktiviteyi yapan satış temsilcisi
-- `user_id`: Aktiviteyi oluşturan/sahip olan kullanıcı
+- `assigned_to`: Aktiviteye atanan kullanıcı (assignee)
+- `user_id`: Aktiviteyi oluşturan kullanıcı (creator)
 
 ---
 
@@ -376,7 +376,7 @@ export async function PUT(
 - By type (call, email, meeting, etc.)
 - By date range (last 7 days, last 30 days, custom)
 - By status (pending, completed, cancelled)
-- By representative/user
+- By assigned user
 
 **UI:**
 ```typescript
@@ -716,7 +716,7 @@ async function syncToGoogleCalendar(activity: Activity) {
 1. **v1.0.0** - Initial activities table
 2. **v1.1.0** - Added activity_types table
 3. **v1.2.0** - Added activity_type_id foreign key
-4. **v1.3.0** - Added representative_id and user_id
+4. **v1.3.0** - Added assigned_to and user_id
 5. **v2.0.0** - Updated cascade behaviors
 
 **Future Migrations:**
@@ -838,7 +838,7 @@ const iconMap = {
 | Version | Date | Changes |
 |---------|------|---------|
 | 2.0.0 | 2025-10-04 | Activity types integration, icon/color support |
-| 1.3.0 | 2025-10-03 | Added representative and user assignment |
+| 1.3.0 | 2025-10-03 | Added user assignment (assigned_to and user_id) |
 | 1.2.0 | 2025-10-02 | Added activity_type_id foreign key |
 | 1.1.0 | 2025-10-01 | Added activity_types table |
 | 1.0.0 | 2025-09-30 | Initial activities system |

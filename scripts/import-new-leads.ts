@@ -71,7 +71,6 @@ async function importLeads() {
           full_name: leadData.full_name,
           email: email,
           phone: leadData.phone,
-          phone_country: "+90",
           source: "website",
           status: "new",
           priority: "medium",

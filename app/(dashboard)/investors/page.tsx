@@ -73,7 +73,6 @@ async function getInvestorsData() {
     ...investor,
     id: Number(investor.id),
     lead_id: investor.lead_id ? Number(investor.lead_id) : null,
-    representative_id: investor.representative_id ? Number(investor.representative_id) : null,
     created_by: investor.created_by ? Number(investor.created_by) : null,
     updated_by: investor.updated_by ? Number(investor.updated_by) : null,
     assignedUser: assignmentMap.get(Number(investor.id)) || null,

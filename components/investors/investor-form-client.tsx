@@ -241,7 +241,7 @@ export function InvestorFormClient({
     const requiredFields = ["full_name", "email", "phone"]
 
     let completed = 0
-    let total = requiredFields.length + customFields.length
+    const total = requiredFields.length + customFields.length
 
     // Count required contact fields
     requiredFields.forEach(field => {

@@ -9,29 +9,29 @@ datasource db {
 }
 
 model activities {
-  id                BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
-  lead_id           BigInt?           @db.UnsignedBigInt
-  investor_id       BigInt?           @db.UnsignedBigInt
-  representative_id BigInt?           @db.UnsignedBigInt
-  user_id           BigInt?           @db.UnsignedBigInt
-  type              String            @db.VarChar(255)
-  activity_type_id  BigInt?           @db.UnsignedBigInt
-  subject           String?           @db.VarChar(255)
-  description       String?           @db.Text
-  status            activities_status @default(pending)
-  scheduled_at      DateTime?         @db.Timestamp(0)
-  completed_at      DateTime?         @db.Timestamp(0)
-  activity_date     DateTime?         @db.Timestamp(0)
-  created_at        DateTime?         @db.Timestamp(0)
-  updated_at        DateTime?         @db.Timestamp(0)
-  activity_types    activity_types?   @relation(fields: [activity_type_id], references: [id], onUpdate: NoAction, map: "activities_activity_type_id_foreign")
-  investors         investors?        @relation(fields: [investor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "activities_investor_id_foreign")
-  leads             leads?            @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "activities_lead_id_foreign")
-  representatives   representatives?  @relation(fields: [representative_id], references: [id], onUpdate: NoAction, map: "activities_representative_id_foreign")
-  users             users?            @relation(fields: [user_id], references: [id], onUpdate: NoAction, map: "activities_user_id_foreign")
+  id               BigInt            @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id          BigInt?           @db.UnsignedBigInt
+  investor_id      BigInt?           @db.UnsignedBigInt
+  assigned_to      BigInt?           @db.UnsignedBigInt
+  user_id          BigInt?           @db.UnsignedBigInt
+  type             String            @db.VarChar(255)
+  activity_type_id BigInt?           @db.UnsignedBigInt
+  subject          String?           @db.VarChar(255)
+  description      String?           @db.Text
+  status           activities_status @default(pending)
+  scheduled_at     DateTime?         @db.Timestamp(0)
+  completed_at     DateTime?         @db.Timestamp(0)
+  activity_date    DateTime?         @db.Timestamp(0)
+  created_at       DateTime?         @db.Timestamp(0)
+  updated_at       DateTime?         @db.Timestamp(0)
+  activity_types   activity_types?   @relation(fields: [activity_type_id], references: [id], onUpdate: NoAction, map: "activities_activity_type_id_foreign")
+  investors        investors?        @relation(fields: [investor_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "activities_investor_id_foreign")
+  leads            leads?            @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "activities_lead_id_foreign")
+  assignedUser     users?            @relation("activity_assigned_to", fields: [assigned_to], references: [id], onUpdate: NoAction, map: "activities_assigned_to_foreign")
+  users            users?            @relation("activity_created_by", fields: [user_id], references: [id], onUpdate: NoAction, map: "activities_user_id_foreign")
 
   @@index([activity_type_id], map: "activities_activity_type_id_foreign")
-  @@index([representative_id], map: "activities_representative_id_foreign")
+  @@index([assigned_to], map: "activities_assigned_to_foreign")
   @@index([completed_at], map: "idx_activities_completed")
   @@index([created_at], map: "idx_activities_created_at")
   @@index([investor_id], map: "idx_activities_investor")
@@ -106,17 +106,17 @@ model automation_rules {
 }
 
 model branches {
-  id              BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  name            String           @db.VarChar(255)
-  code            String           @unique(map: "branches_code_unique") @db.VarChar(255)
-  address         String?          @db.Text
-  phone           String?          @db.VarChar(255)
-  email           String?          @db.VarChar(255)
-  manager_id      BigInt?          @db.UnsignedBigInt
-  status          branches_status  @default(active)
-  created_at      DateTime?        @db.Timestamp(0)
-  updated_at      DateTime?        @db.Timestamp(0)
-  representatives representatives? @relation(fields: [manager_id], references: [id], onUpdate: NoAction, map: "branches_manager_id_foreign")
+  id         BigInt          @id @default(autoincrement()) @db.UnsignedBigInt
+  name       String          @db.VarChar(255)
+  code       String          @unique(map: "branches_code_unique") @db.VarChar(255)
+  address    String?         @db.Text
+  phone      String?         @db.VarChar(255)
+  email      String?         @db.VarChar(255)
+  manager_id BigInt?         @db.UnsignedBigInt
+  status     branches_status @default(active)
+  created_at DateTime?       @db.Timestamp(0)
+  updated_at DateTime?       @db.Timestamp(0)
+  manager    users?          @relation("branch_manager", fields: [manager_id], references: [id], onUpdate: NoAction, map: "branches_manager_id_foreign")
 
   @@index([manager_id], map: "branches_manager_id_foreign")
 }
@@ -403,7 +403,6 @@ model investors {
   investment_preferences    String?                              @db.Text
   risk_tolerance            investors_risk_tolerance?
   communication_preferences investors_communication_preferences?
-  representative_id         BigInt?                              @db.UnsignedBigInt
   source                    String                               @default("other") @db.VarChar(255)
   last_activity_at          DateTime?                            @db.Timestamp(0)
   activity_status           investors_activity_status            @default(active)
@@ -416,8 +415,6 @@ model investors {
   leads                     leads?                               @relation(fields: [lead_id], references: [id], onUpdate: NoAction, map: "investors_lead_id_foreign")
 
   @@index([created_at], map: "idx_investors_created_at")
-  @@index([representative_id, status], map: "idx_investors_rep_status")
-  @@index([representative_id], map: "idx_investors_representative")
   @@index([status], map: "idx_investors_status")
   @@index([status, created_at], map: "idx_investors_status_created")
   @@index([activity_status, last_activity_at], map: "investors_activity_status_last_activity_at_index")
@@ -425,7 +422,6 @@ model investors {
   @@index([lead_id], map: "investors_lead_id_index")
   @@index([phone], map: "investors_phone_index")
   @@index([created_at], map: "investors_priority_created_at_index")
-  @@index([representative_id, created_at], map: "investors_representative_id_created_at_index")
   @@index([source, created_at], map: "investors_source_created_at_index")
   @@index([status, created_at], map: "investors_status_created_at_index")
 }
@@ -540,18 +536,18 @@ model lead_form_sections {
 }
 
 model lead_performance_metrics {
-  id                BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
-  metric_date       DateTime  @db.Date
-  metric_type       String    @db.VarChar(255)
-  metrics_data      Json
-  representative_id BigInt?   @db.UnsignedBigInt
-  source            String?   @db.VarChar(255)
-  created_at        DateTime? @db.Timestamp(0)
-  updated_at        DateTime? @db.Timestamp(0)
-  users             users?    @relation(fields: [representative_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "lead_performance_metrics_representative_id_foreign")
+  id           BigInt    @id @default(autoincrement()) @db.UnsignedBigInt
+  metric_date  DateTime  @db.Date
+  metric_type  String    @db.VarChar(255)
+  metrics_data Json
+  user_id      BigInt?   @db.UnsignedBigInt
+  source       String?   @db.VarChar(255)
+  created_at   DateTime? @db.Timestamp(0)
+  updated_at   DateTime? @db.Timestamp(0)
+  users        users?    @relation(fields: [user_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "lead_performance_metrics_user_id_foreign")
 
   @@index([metric_date, metric_type], map: "lead_performance_metrics_metric_date_metric_type_index")
-  @@index([representative_id, metric_date], map: "lead_performance_metrics_representative_id_metric_date_index")
+  @@index([user_id, metric_date], map: "lead_performance_metrics_user_id_metric_date_index")
   @@index([source, metric_date], map: "lead_performance_metrics_source_metric_date_index")
 }
 
@@ -587,7 +583,6 @@ model leads {
   phone             String              @unique(map: "leads_phone_unique") @db.VarChar(255)
   source            String              @default("website") @db.VarChar(50)
   status            String              @default("new") @db.VarChar(50)
-  representative_id BigInt?             @db.UnsignedBigInt
   priority          String?             @db.VarChar(50)
   notes_text        String?             @db.Text @map("notes")
   activity_id       BigInt?             @db.UnsignedBigInt
@@ -600,13 +595,10 @@ model leads {
   notes             notes[]
 
   @@index([created_at], map: "idx_leads_created_at")
-  @@index([representative_id, status], map: "idx_leads_rep_status")
-  @@index([representative_id], map: "idx_leads_representative")
   @@index([status], map: "idx_leads_status")
   @@index([status, created_at], map: "idx_leads_status_created")
   @@index([created_at, status], map: "leads_created_at_status_index")
   @@index([priority, status], map: "leads_priority_status_index")
-  @@index([representative_id, status], map: "leads_representative_id_status_index")
   @@index([source, created_at], map: "leads_source_created_at_index")
   @@index([status, created_at], map: "leads_status_created_at_index")
 }
@@ -638,20 +630,20 @@ model model_has_roles {
 }
 
 model notes {
-  id                BigInt           @id @default(autoincrement()) @db.UnsignedBigInt
-  lead_id           BigInt           @db.UnsignedBigInt
-  representative_id BigInt?          @db.UnsignedBigInt
-  title             String           @db.VarChar(255)
-  content           String           @db.Text
-  type              notes_type       @default(general)
-  is_private        Boolean          @default(false)
-  created_at        DateTime?        @db.Timestamp(0)
-  updated_at        DateTime?        @db.Timestamp(0)
-  leads             leads            @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notes_lead_id_foreign")
-  representatives   representatives? @relation("representative_notes", fields: [representative_id], references: [id], onUpdate: NoAction, map: "notes_representative_id_foreign")
+  id         BigInt     @id @default(autoincrement()) @db.UnsignedBigInt
+  lead_id    BigInt     @db.UnsignedBigInt
+  user_id    BigInt?    @db.UnsignedBigInt
+  title      String     @db.VarChar(255)
+  content    String     @db.Text
+  type       notes_type @default(general)
+  is_private Boolean    @default(false)
+  created_at DateTime?  @db.Timestamp(0)
+  updated_at DateTime?  @db.Timestamp(0)
+  leads      leads      @relation(fields: [lead_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "notes_lead_id_foreign")
+  users      users?     @relation("note_creator", fields: [user_id], references: [id], onUpdate: NoAction, map: "notes_user_id_foreign")
 
   @@index([lead_id], map: "notes_lead_id_foreign")
-  @@index([representative_id], map: "notes_representative_id_foreign")
+  @@index([user_id], map: "notes_user_id_foreign")
 }
 
 model notifications {
@@ -703,22 +695,6 @@ model personal_access_tokens {
   @@index([tokenable_type, tokenable_id], map: "personal_access_tokens_tokenable_type_tokenable_id_index")
 }
 
-model representatives {
-  id         BigInt                 @id @default(autoincrement()) @db.UnsignedBigInt
-  first_name String                 @db.VarChar(255)
-  last_name  String                 @db.VarChar(255)
-  email      String                 @unique(map: "representatives_email_unique") @db.VarChar(255)
-  phone      String?                @db.VarChar(255)
-  position   String?                @db.VarChar(255)
-  department String?                @db.VarChar(255)
-  status     representatives_status @default(active)
-  notes_text String?                @db.Text @map("notes")
-  created_at DateTime?              @db.Timestamp(0)
-  updated_at DateTime?              @db.Timestamp(0)
-  activities activities[]
-  branches   branches[]
-  notes_rel  notes[]                @relation("representative_notes")
-}
 
 model role_has_permissions {
   permission_id BigInt       @db.UnsignedBigInt
@@ -1011,8 +987,10 @@ model users {
   status                          users_status                    @default(active)
   created_at                      DateTime?                       @db.Timestamp(0)
   updated_at                      DateTime?                       @db.Timestamp(0)
-  activities                      activities[]
+  activitiesCreated               activities[]                    @relation("activity_created_by")
+  activitiesAssigned              activities[]                    @relation("activity_assigned_to")
   automation_rules                automation_rules[]
+  branchesManaged                 branches[]                      @relation("branch_manager")
   export_configurations           export_configurations[]
   export_jobs                     export_jobs[]
   field_mapping_templates         field_mapping_templates[]
@@ -1020,6 +998,7 @@ model users {
   import_jobs                     import_jobs[]
   kanban_configs                  kanban_configs[]
   lead_performance_metrics        lead_performance_metrics[]
+  notesCreated                    notes[]                         @relation("note_creator")
   task_assignment_history         task_assignment_history[]
   task_attachments                task_attachments[]
   task_comments                   task_comments[]
@@ -1167,7 +1146,7 @@ enum activities_type {
   created
   updated
   status_changed
-  representative_assigned
+  user_assigned
   converted
 }
 
@@ -1246,10 +1225,6 @@ enum export_jobs_status {
   cancelled
 }
 
-enum representatives_status {
-  active
-  inactive
-}
 
 enum activities_status {
   pending

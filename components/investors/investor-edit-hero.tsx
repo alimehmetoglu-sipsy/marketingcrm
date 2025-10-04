@@ -12,11 +12,11 @@ interface InvestorEditHeroProps {
     id: number
     full_name: string
     email: string
-    phone: string | null
+    phone?: string | null
     source: string
     status: string
-    priority: string
-    created_at: Date | null
+    priority?: string | null
+    created_at?: Date | null
   }
   isSubmitting: boolean
   onSave: () => void

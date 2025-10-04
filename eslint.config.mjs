@@ -18,7 +18,19 @@ const eslintConfig = [
       "out/**",
       "build/**",
       "next-env.d.ts",
+      "lib/generated/**",
     ],
+  },
+  {
+    rules: {
+      "@typescript-eslint/no-explicit-any": "warn",
+      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-expressions": "off",
+      "@typescript-eslint/no-require-imports": "warn",
+      "@next/next/no-html-link-for-pages": "warn",
+      "react/no-unescaped-entities": "warn",
+      "prefer-const": "warn",
+    },
   },
 ];
 

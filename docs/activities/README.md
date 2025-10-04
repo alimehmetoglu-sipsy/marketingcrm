@@ -11,7 +11,7 @@ Activities sistemi, Lead ve Investor'lar için aktivite yönetimi sağlar. Activ
 - ✅ **Activity Types Integration:** activity_types tablosundan dinamik aktivite tipleri
 - ✅ **Icon & Color Support:** Her aktivite tipi için özel icon ve renk
 - ✅ **Lead & Investor Support:** Hem lead hem investor aktiviteleri
-- ✅ **Representative & User Assignment:** Aktivitelere temsilci ve kullanıcı atama
+- ✅ **User Assignment:** Aktivitelere kullanıcı atama (creator & assignee)
 - ✅ **Timeline View:** Modern activity timeline görünümü
 - ✅ **Auto-Update:** Investor/Lead last_activity_at otomatik güncelleme
 
@@ -100,8 +100,8 @@ activities
 ├── activity_type_id → activity_types (icon, color, label)
 ├── lead_id → leads
 ├── investor_id → investors
-├── representative_id → representatives
-└── user_id → users
+├── assigned_to → users (assigned user)
+└── user_id → users (creator)
 ```
 
 ---

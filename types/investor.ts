@@ -27,7 +27,6 @@ export type Investor = {
   investment_preferences?: string | null
   risk_tolerance?: string | null | any
   communication_preferences?: string | null | any
-  representative_id?: bigint | null | number
   source: string
   last_activity_at?: Date | null
   activity_status?: string | any
