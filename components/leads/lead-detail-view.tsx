@@ -28,10 +28,28 @@ import {
   CheckCircle2,
   Target,
   Users,
+  UserCircle,
 } from "lucide-react"
 import Link from "next/link"
+import { useRouter } from "next/navigation"
+import { toast } from "sonner"
 import { DeleteLeadDialog } from "./delete-lead-dialog"
 import { AddActivityDialog } from "@/components/activities/add-activity-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 
 interface LeadDetailProps {
   lead: {
@@ -104,6 +122,21 @@ interface LeadDetailProps {
       icon: string | null
       gradient: string | null
     }>
+    assignedUser: {
+      id: number
+      name: string
+      email: string
+      assigned_at: Date | null
+      assigned_by: {
+        id: number
+        name: string
+      }
+    } | null
+    activeUsers: Array<{
+      id: number
+      name: string
+      email: string
+    }>
   }
 }
 
@@ -125,10 +158,14 @@ const priorityConfig: Record<string, { color: string; bg: string; label: string;
 }
 
 export function LeadDetailView({ lead }: LeadDetailProps) {
+  const router = useRouter()
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [addActivityOpen, setAddActivityOpen] = useState(false)
+  const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [selectedUserId, setSelectedUserId] = useState<string>("")
+  const [assigning, setAssigning] = useState(false)
 
-  const status = statusConfig[lead.status] || { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: lead.status }
+  const status = statusConfig[lead.status || 'new'] || { color: "text-gray-700", bg: "bg-gray-50 border-gray-200", label: lead.status || 'New' }
   const priority = lead.priority ? priorityConfig[lead.priority] : null
 
   // Get field value helper
@@ -208,6 +245,53 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
       .slice(0, 2)
   }
 
+  // Handle user assignment
+  const handleAssignUser = async () => {
+    if (!selectedUserId && selectedUserId !== "unassign") {
+      toast.error("Please select a user")
+      return
+    }
+
+    setAssigning(true)
+    try {
+      const res = await fetch(`/api/leads/${lead.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          user_id: selectedUserId === "unassign" ? null : parseInt(selectedUserId),
+        }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        throw new Error(data.error || data.details || "Failed to assign user")
+      }
+
+      setAssignDialogOpen(false)
+      setSelectedUserId("")
+
+      toast.success(
+        selectedUserId === "unassign"
+          ? "User unassigned successfully"
+          : "User assigned successfully"
+      )
+
+      router.refresh()
+    } catch (error: any) {
+      console.error("Assignment error:", error)
+      toast.error(error.message || "Failed to assign user")
+    } finally {
+      setAssigning(false)
+    }
+  }
+
+  // Open assign dialog with current user pre-selected
+  const openAssignDialog = () => {
+    setSelectedUserId(lead.assignedUser?.id.toString() || "")
+    setAssignDialogOpen(true)
+  }
+
   return (
     <>
       <div className="space-y-6">
@@ -264,10 +348,12 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
                       {priority.label}
                     </Badge>
                   )}
-                  <Badge variant="outline" className="bg-white/10 text-white border-white/20">
-                    <Globe className="h-3 w-3 mr-1" />
-                    {lead.source.replace(/_/g, " ")}
-                  </Badge>
+                  {lead.source && (
+                    <Badge variant="outline" className="bg-white/10 text-white border-white/20">
+                      <Globe className="h-3 w-3 mr-1" />
+                      {lead.source.replace(/_/g, " ")}
+                    </Badge>
+                  )}
                 </div>
 
                 <div className="flex flex-wrap items-center gap-4 text-white/90">
@@ -423,48 +509,51 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
                         </a>
                       </div>
 
-                      <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Globe className="h-4 w-4 text-gray-400" />
-                          <span className="font-medium">Source</span>
+                      {lead.source && (
+                        <div className="space-y-2">
+                          <div className="flex items-center gap-2 text-sm text-gray-600">
+                            <Globe className="h-4 w-4 text-gray-400" />
+                            <span className="font-medium">Source</span>
+                          </div>
+                          <div className="ml-6">
+                            <Badge variant="outline" className="capitalize border-gray-200 bg-gray-50">
+                              {lead.source.replace(/_/g, " ")}
+                            </Badge>
+                          </div>
                         </div>
-                        <div className="ml-6">
-                          <Badge variant="outline" className="capitalize border-gray-200 bg-gray-50">
-                            {lead.source.replace(/_/g, " ")}
-                          </Badge>
-                        </div>
-                      </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
 
                 {/* Dynamic Sections from lead_form_sections */}
                 {lead.formSections.map((section) => {
-                  // Get fields for this section
+                  // Get fields for this section - DON'T filter system fields, only filter specific names
                   const sectionFields = lead.allFields.filter(
                     (field) => field.section_key === section.section_key &&
-                    !field.is_system_field &&
                     field.name !== "source" &&
                     field.name !== "status" &&
                     field.name !== "priority"
                   )
 
-                  // Skip if no fields in this section
-                  if (sectionFields.length === 0) return null
+                  // Check if this is the lead_details section
+                  const isLeadDetailsSection = section.section_key === 'lead_details'
+
+                  // Skip if no fields in this section UNLESS it's Lead Details section (which has Status/Priority)
+                  if (sectionFields.length === 0 && !isLeadDetailsSection) return null
 
                   const SectionIcon = iconMapping[section.icon || 'layout'] || Tag
 
-                  // Generate gradient class - either from DB or default
-                  const gradientClass = section.gradient || 'bg-gradient-to-r from-gray-50 to-gray-100'
-
-                  // Check if this is the lead_details section
-                  const isLeadDetailsSection = section.section_key === 'lead_details'
+                  // Generate gradient class - use blue gradient for lead_details, otherwise from DB or default
+                  const gradientClass = isLeadDetailsSection
+                    ? 'bg-gradient-to-r from-blue-50 to-sky-50'
+                    : (section.gradient || 'bg-gradient-to-r from-gray-50 to-gray-100')
 
                   return (
                     <Card key={section.id} className="border-gray-200 shadow-sm">
                       <CardHeader className={`${gradientClass} border-b border-gray-200`}>
                         <CardTitle className="text-lg font-semibold text-gray-900 flex items-center gap-2">
-                          <SectionIcon className="h-5 w-5 text-emerald-600" />
+                          <SectionIcon className="h-5 w-5 text-blue-600" />
                           {section.name}
                         </CardTitle>
                       </CardHeader>
@@ -474,7 +563,7 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
                           {isLeadDetailsSection && (
                             <>
                               {/* Status */}
-                              <div className="space-y-2">
+                              <div className="space-y-2 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                                 <div className="flex items-center gap-2 text-sm text-gray-600">
                                   <CheckCircle2 className="h-4 w-4 text-gray-400" />
                                   <span className="font-medium">Status</span>
@@ -488,7 +577,7 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
 
                               {/* Priority */}
                               {lead.priority && priority && (
-                                <div className="space-y-2">
+                                <div className="space-y-2 p-4 rounded-lg bg-gray-50 hover:bg-gray-100 transition-colors">
                                   <div className="flex items-center gap-2 text-sm text-gray-600">
                                     <AlertCircle className="h-4 w-4 text-gray-400" />
                                     <span className="font-medium">Priority</span>
@@ -708,6 +797,64 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
               </CardContent>
             </Card>
 
+            {/* Assigned To */}
+            <Card className="border-gray-200 shadow-sm">
+              <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
+                <CardTitle className="text-base font-semibold text-gray-900 flex items-center gap-2">
+                  <UserCircle className="h-5 w-5 text-blue-600" />
+                  Assigned To
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="p-6">
+                {lead.assignedUser ? (
+                  <div className="space-y-4">
+                    <div className="flex items-start gap-3">
+                      <Avatar className="h-12 w-12 border-2 border-blue-100">
+                        <AvatarFallback className="bg-blue-100 text-blue-700 font-semibold">
+                          {getInitials(lead.assignedUser.name)}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-gray-900 truncate">
+                          {lead.assignedUser.name}
+                        </p>
+                        <p className="text-sm text-gray-600 truncate">
+                          {lead.assignedUser.email}
+                        </p>
+                        <p className="text-xs text-gray-500 mt-1">
+                          Assigned {lead.assignedUser.assigned_at && formatDistanceToNow(new Date(lead.assignedUser.assigned_at), { addSuffix: true })}
+                        </p>
+                        <p className="text-xs text-gray-500">
+                          by {lead.assignedUser.assigned_by.name}
+                        </p>
+                      </div>
+                    </div>
+                    <Button
+                      variant="outline"
+                      className="w-full border-gray-200 hover:border-blue-300 hover:bg-blue-50"
+                      onClick={openAssignDialog}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Change Assignment
+                    </Button>
+                  </div>
+                ) : (
+                  <div className="text-center py-4">
+                    <UserCircle className="h-12 w-12 text-gray-300 mx-auto mb-3" />
+                    <p className="text-sm text-gray-600 mb-4">No user assigned</p>
+                    <Button
+                      variant="outline"
+                      className="w-full border-blue-200 bg-blue-50 hover:bg-blue-100 text-blue-700"
+                      onClick={openAssignDialog}
+                    >
+                      <Users className="h-4 w-4 mr-2" />
+                      Assign User
+                    </Button>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
             {/* Dates Info */}
             <Card className="border-gray-200 shadow-lg">
               <CardHeader className="bg-gradient-to-r from-blue-50 to-sky-50 border-b border-gray-200">
@@ -759,7 +906,7 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
 
       <DeleteLeadDialog
         open={deleteOpen}
-        onOpenChange={setDeleteOpen}
+        onClose={() => setDeleteOpen(false)}
         leadId={String(lead.id)}
         leadName={lead.full_name}
       />
@@ -769,6 +916,98 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
         onOpenChange={setAddActivityOpen}
         leadId={lead.id}
       />
+
+      {/* Assign User Dialog */}
+      <Dialog open={assignDialogOpen} onOpenChange={setAssignDialogOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <UserCircle className="h-5 w-5 text-blue-600" />
+              Assign User
+            </DialogTitle>
+            <DialogDescription>
+              Select a user to assign this lead to, or choose "Unassign" to remove the current assignment.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <label htmlFor="user-select" className="text-sm font-medium text-gray-900">
+                User
+              </label>
+              <Select value={selectedUserId} onValueChange={setSelectedUserId}>
+                <SelectTrigger id="user-select" className="w-full">
+                  <SelectValue placeholder="Select a user..." />
+                </SelectTrigger>
+                <SelectContent>
+                  {lead.assignedUser && (
+                    <>
+                      <SelectItem value="unassign" className="text-red-600">
+                        <span className="flex items-center gap-2">
+                          <UserCircle className="h-4 w-4" />
+                          Unassign User
+                        </span>
+                      </SelectItem>
+                      <Separator className="my-1" />
+                    </>
+                  )}
+                  {lead.activeUsers.map((user) => (
+                    <SelectItem key={user.id} value={user.id.toString()}>
+                      <div className="flex items-center gap-2">
+                        <Avatar className="h-6 w-6">
+                          <AvatarFallback className="bg-blue-100 text-blue-700 text-xs">
+                            {getInitials(user.name)}
+                          </AvatarFallback>
+                        </Avatar>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{user.name}</span>
+                          <span className="text-xs text-gray-500">{user.email}</span>
+                        </div>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedUserId && selectedUserId !== "unassign" && (
+              <div className="p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                <p className="text-sm text-blue-800">
+                  <strong>{lead.activeUsers.find((u) => u.id.toString() === selectedUserId)?.name}</strong> will be assigned to this lead.
+                </p>
+              </div>
+            )}
+
+            {selectedUserId === "unassign" && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                <p className="text-sm text-red-800">
+                  Current assignment will be removed.
+                </p>
+              </div>
+            )}
+          </div>
+
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => {
+                setAssignDialogOpen(false)
+                setSelectedUserId("")
+              }}
+              disabled={assigning}
+            >
+              Cancel
+            </Button>
+            <Button
+              onClick={handleAssignUser}
+              disabled={!selectedUserId || assigning}
+              className="bg-blue-600 hover:bg-blue-700"
+            >
+              {assigning ? "Assigning..." : selectedUserId === "unassign" ? "Unassign" : "Assign"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </>
   )
 }

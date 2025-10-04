@@ -54,6 +54,40 @@ async function getLead(id: string) {
     orderBy: { sort_order: "asc" },
   })
 
+  // Get user assignment
+  const userAssignment = await prisma.user_assignments.findFirst({
+    where: {
+      entity_type: "lead",
+      entity_id: lead.id,
+    },
+    include: {
+      user_assigned: {
+        select: {
+          id: true,
+          name: true,
+          email: true,
+        },
+      },
+      user_assigner: {
+        select: {
+          id: true,
+          name: true,
+        },
+      },
+    },
+  })
+
+  // Get active users for assignment dropdown
+  const activeUsers = await prisma.users.findMany({
+    where: { status: "active" },
+    select: {
+      id: true,
+      name: true,
+      email: true,
+    },
+    orderBy: { name: "asc" },
+  })
+
   // Convert BigInt to number and parse JSON values for multiselect fields
   const customFieldValues = customFieldValuesRaw.map((cfv) => {
     let parsedValue = cfv.value
@@ -125,6 +159,20 @@ async function getLead(id: string) {
     formSections: formSections.map((section) => ({
       ...section,
       id: Number(section.id),
+    })),
+    assignedUser: userAssignment ? {
+      id: Number(userAssignment.user_assigned.id),
+      name: userAssignment.user_assigned.name,
+      email: userAssignment.user_assigned.email,
+      assigned_at: userAssignment.created_at,
+      assigned_by: {
+        id: Number(userAssignment.user_assigner.id),
+        name: userAssignment.user_assigner.name || "Unknown",
+      },
+    } : null,
+    activeUsers: activeUsers.map((user) => ({
+      ...user,
+      id: Number(user.id),
     })),
   }
 }

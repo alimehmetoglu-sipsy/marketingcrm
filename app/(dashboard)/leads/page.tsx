@@ -3,7 +3,7 @@ import { LeadsTableWithFilters } from "@/components/leads/leads-table-with-filte
 import { AddLeadButton } from "@/components/leads/add-lead-button"
 
 async function getLeadsData() {
-  const [leads, leadFields] = await Promise.all([
+  const [leads, leadFields, activeUsers, userAssignments] = await Promise.all([
     prisma.leads.findMany({
       orderBy: { created_at: "desc" },
       include: {
@@ -24,36 +24,77 @@ async function getLeadsData() {
       },
       orderBy: { sort_order: "asc" },
     }),
+    prisma.users.findMany({
+      where: { status: "active" },
+      select: {
+        id: true,
+        name: true,
+        email: true,
+      },
+      orderBy: { name: "asc" },
+    }),
+    prisma.user_assignments.findMany({
+      where: {
+        entity_type: "lead",
+      },
+      include: {
+        user_assigned: {
+          select: {
+            id: true,
+            name: true,
+            email: true,
+          },
+        },
+      },
+    }),
   ])
 
-  // Convert BigInt to number and parse JSON values
-  const serializedLeads = leads.map((lead) => ({
-    ...lead,
-    id: Number(lead.id),
-    lead_field_values: lead.lead_field_values.map((fv) => {
-      let parsedValue = fv.value
+  // Create a map of lead assignments
+  const assignmentMap = new Map(
+    userAssignments.map((assignment) => [
+      Number(assignment.entity_id),
+      assignment,
+    ])
+  )
 
-      // Try to parse JSON for multiselect fields
-      if (parsedValue && typeof parsedValue === 'string') {
-        const fieldType = fv.lead_fields?.type
-        if (fieldType === 'multiselect' || fieldType === 'multiselect_dropdown') {
-          try {
-            parsedValue = JSON.parse(parsedValue)
-          } catch (e) {
-            // If parsing fails, keep as string
+  // Convert BigInt to number and parse JSON values
+  const serializedLeads = leads.map((lead) => {
+    // Get assigned user for this lead from the map
+    const assignment = assignmentMap.get(Number(lead.id))
+
+    return {
+      ...lead,
+      id: Number(lead.id),
+      assignedUser: assignment ? {
+        id: Number(assignment.user_assigned.id),
+        name: assignment.user_assigned.name,
+        email: assignment.user_assigned.email,
+      } : null,
+      lead_field_values: lead.lead_field_values.map((fv) => {
+        let parsedValue = fv.value
+
+        // Try to parse JSON for multiselect fields
+        if (parsedValue && typeof parsedValue === 'string') {
+          const fieldType = fv.lead_fields?.type
+          if (fieldType === 'multiselect' || fieldType === 'multiselect_dropdown') {
+            try {
+              parsedValue = JSON.parse(parsedValue)
+            } catch (e) {
+              // If parsing fails, keep as string
+            }
           }
         }
-      }
 
-      return {
-        ...fv,
-        id: Number(fv.id),
-        lead_id: Number(fv.lead_id),
-        lead_field_id: Number(fv.lead_field_id),
-        value: parsedValue,
-      }
-    }),
-  }))
+        return {
+          ...fv,
+          id: Number(fv.id),
+          lead_id: Number(fv.lead_id),
+          lead_field_id: Number(fv.lead_field_id),
+          value: parsedValue,
+        }
+      }),
+    }
+  })
 
   const serializedFields = leadFields.map((field) => ({
     ...field,
@@ -65,11 +106,16 @@ async function getLeadsData() {
     })),
   }))
 
-  return { leads: serializedLeads, leadFields: serializedFields }
+  const serializedUsers = activeUsers.map((user) => ({
+    ...user,
+    id: Number(user.id),
+  }))
+
+  return { leads: serializedLeads, leadFields: serializedFields, activeUsers: serializedUsers }
 }
 
 export default async function LeadsPage() {
-  const { leads, leadFields } = await getLeadsData()
+  const { leads, leadFields, activeUsers } = await getLeadsData()
 
   return (
     <div className="space-y-6">
@@ -83,7 +129,7 @@ export default async function LeadsPage() {
         <AddLeadButton />
       </div>
 
-      <LeadsTableWithFilters leads={leads} leadFields={leadFields} />
+      <LeadsTableWithFilters leads={leads} leadFields={leadFields} activeUsers={activeUsers} />
     </div>
   )
 }

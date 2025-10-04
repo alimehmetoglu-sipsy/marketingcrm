@@ -14,6 +14,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -42,6 +43,11 @@ interface Lead {
   status: string
   priority: string | null
   created_at: Date | null
+  assigned_user?: {
+    id: number
+    name: string | null
+    email: string
+  } | null
 }
 
 const statusConfig: Record<string, { color: string; bg: string; label: string }> = {
@@ -209,6 +215,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
               <TableHead className="font-semibold text-gray-700">Contact Info</TableHead>
               <TableHead className="font-semibold text-gray-700">Source</TableHead>
               <TableHead className="font-semibold text-gray-700">Status</TableHead>
+              <TableHead className="font-semibold text-gray-700">Assigned To</TableHead>
               <TableHead className="font-semibold text-gray-700">Priority</TableHead>
               <TableHead className="font-semibold text-gray-700">Created</TableHead>
               <TableHead className="text-right font-semibold text-gray-700">Actions</TableHead>
@@ -217,7 +224,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
           <TableBody>
             {filteredLeads.length === 0 ? (
               <TableRow>
-                <TableCell colSpan={7} className="text-center py-12">
+                <TableCell colSpan={8} className="text-center py-12">
                   <div className="flex flex-col items-center justify-center">
                     <div className="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mb-4">
                       <Search className="h-8 w-8 text-gray-400" />
@@ -269,6 +276,30 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                       <div className={`inline-flex items-center px-2.5 py-1 rounded-md border text-xs font-medium ${status.bg} ${status.color}`}>
                         {status.label}
                       </div>
+                    </TableCell>
+                    <TableCell>
+                      {lead.assigned_user ? (
+                        <div className="flex items-center gap-2">
+                          <Avatar className="h-7 w-7 border border-blue-200">
+                            <AvatarFallback className="bg-blue-100 text-blue-700 text-xs font-semibold">
+                              {lead.assigned_user.name
+                                ?.split(" ")
+                                .filter((n: string) => n)
+                                .map((n: string) => n[0])
+                                .join("")
+                                .slice(0, 2)
+                                .toUpperCase() || "?"}
+                            </AvatarFallback>
+                          </Avatar>
+                          <span className="text-sm font-medium text-gray-700">
+                            {lead.assigned_user.name || lead.assigned_user.email}
+                          </span>
+                        </div>
+                      ) : (
+                        <div className="inline-flex items-center px-2.5 py-1 rounded-md border border-gray-200 bg-gray-50 text-xs font-medium text-gray-500">
+                          <span>Unassigned</span>
+                        </div>
+                      )}
                     </TableCell>
                     <TableCell>
                       {lead.priority && priority ? (
@@ -334,7 +365,7 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
 
       <DeleteLeadDialog
         open={!!deleteLead}
-        onOpenChange={(open) => !open && setDeleteLead(null)}
+        onClose={() => setDeleteLead(null)}
         leadId={deleteLead?.id || ""}
         leadName={deleteLead?.name || ""}
       />

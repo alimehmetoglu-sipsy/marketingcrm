@@ -31,9 +31,16 @@ type LeadField = {
   }>
 }
 
+type User = {
+  id: number
+  name: string | null
+  email: string
+}
+
 interface LeadsTableWithFiltersProps {
   leads: Lead[]
   leadFields: LeadField[]
+  activeUsers: User[]
 }
 
 const SOURCE_OPTIONS = [
@@ -63,7 +70,7 @@ const PRIORITY_OPTIONS = [
   { value: "urgent", label: "Urgent" },
 ]
 
-export function LeadsTableWithFilters({ leads, leadFields }: LeadsTableWithFiltersProps) {
+export function LeadsTableWithFilters({ leads, leadFields, activeUsers }: LeadsTableWithFiltersProps) {
   const [searchTerm, setSearchTerm] = useState("")
   const [filters, setFilters] = useState<Record<string, string>>({})
 
@@ -87,7 +94,7 @@ export function LeadsTableWithFilters({ leads, leadFields }: LeadsTableWithFilte
       result = result.filter(
         (lead) =>
           lead.full_name.toLowerCase().includes(searchLower) ||
-          lead.email.toLowerCase().includes(searchLower) ||
+          lead.email?.toLowerCase().includes(searchLower) ||
           lead.phone.includes(searchTerm)
       )
     }
@@ -102,8 +109,16 @@ export function LeadsTableWithFilters({ leads, leadFields }: LeadsTableWithFilte
         if (fieldName === "status") return lead.status === filterValue
         if (fieldName === "priority") return lead.priority === filterValue
 
+        // Assigned User filter
+        if (fieldName === "assigned_user") {
+          if (filterValue === "unassigned") {
+            return !lead.assignedUser
+          }
+          return lead.assignedUser?.id === parseInt(filterValue)
+        }
+
         // Custom fields
-        const fieldValue = lead.lead_field_values.find(
+        const fieldValue = lead.lead_field_values?.find(
           (fv) => fv.lead_fields.name === fieldName
         )
 
@@ -139,12 +154,13 @@ export function LeadsTableWithFilters({ leads, leadFields }: LeadsTableWithFilte
   const tableLeads = filteredLeads.map((lead) => ({
     id: lead.id,
     full_name: lead.full_name,
-    email: lead.email,
+    email: lead.email || "",
     phone: lead.phone,
-    source: lead.source,
-    status: lead.status,
-    priority: lead.priority,
-    created_at: lead.created_at,
+    source: lead.source || "",
+    status: lead.status || "new",
+    priority: lead.priority || null,
+    created_at: lead.created_at || null,
+    assigned_user: lead.assignedUser || null,
   }))
 
   return (
@@ -202,6 +218,22 @@ export function LeadsTableWithFilters({ leads, leadFields }: LeadsTableWithFilte
             {PRIORITY_OPTIONS.map((opt) => (
               <SelectItem key={opt.value} value={opt.value}>
                 {opt.label}
+              </SelectItem>
+            ))}
+          </SelectContent>
+        </Select>
+
+        {/* Assigned User Filter */}
+        <Select value={filters.assigned_user || "all"} onValueChange={(v) => handleFilterChange("assigned_user", v)}>
+          <SelectTrigger className="w-[160px]">
+            <SelectValue placeholder="Assigned To" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Assignments</SelectItem>
+            <SelectItem value="unassigned">Unassigned</SelectItem>
+            {activeUsers.map((user) => (
+              <SelectItem key={user.id} value={user.id.toString()}>
+                {user.name || user.email}
               </SelectItem>
             ))}
           </SelectContent>
