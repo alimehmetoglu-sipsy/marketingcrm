@@ -329,8 +329,10 @@ marketingcrm/
 
 #### Lead List (`/leads`)
 - Gelişmiş filtreleme (Source, Status, Priority)
+- **Assigned To filtreleme** - Kullanıcıya atanmış lead'ler
 - Custom field filtreleri
 - Arama (name, email, phone)
+- **User Assignment** - Lead'leri kullanıcılara atama
 - Pagination
 - Quick actions
 
@@ -341,14 +343,11 @@ marketingcrm/
   - Phone (required, unique)
 
 - **Lead Details (Dinamik):**
-  - investor_fields tablosundan gelen tüm alanlar
+  - lead_fields tablosundan gelen tüm alanlar
   - Form completion tracking
   - Auto-save draft (opsiyonel)
 
-#### Edit Lead (`/leads/[id]/edit`)
-- Tüm field'ları düzenleme
-- History tracking
-- Notes yönetimi
+**Note:** Separate edit page route does not exist. Editing is done via API calls from client components.
 
 #### Lead Detail (`/leads/[id]`) - Modern UI ✨
 **Lokasyon:** `/leads/[id]/page.tsx` + `components/leads/lead-detail-view.tsx`
@@ -551,6 +550,7 @@ sectionFields = allFields.filter(
 - `POST /api/leads` - Create lead
 - `GET /api/leads/[id]` - Get lead
 - `PUT /api/leads/[id]` - Update lead
+- `PATCH /api/leads/[id]` - Assign/unassign user to lead
 - `DELETE /api/leads/[id]` - Delete lead
 
 ### Investors

@@ -379,75 +379,6 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
           </div>
         </div>
 
-        {/* Quick Stats Cards */}
-        <div className="grid gap-6 md:grid-cols-4">
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Total Activities</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {lead.activities?.length || 0}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-blue-100 flex items-center justify-center">
-                  <Activity className="h-6 w-6 text-blue-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Custom Fields</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {lead.allFields.filter(f => !f.is_system_field && f.name !== "source" && f.name !== "status" && f.name !== "priority").length}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-purple-100 flex items-center justify-center">
-                  <Tag className="h-6 w-6 text-purple-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Days Active</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {lead.created_at
-                      ? Math.floor((new Date().getTime() - new Date(lead.created_at).getTime()) / (1000 * 60 * 60 * 24))
-                      : 0}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                  <Clock className="h-6 w-6 text-emerald-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-gray-200 hover:shadow-lg transition-shadow duration-300">
-            <CardContent className="p-6">
-              <div className="flex items-center justify-between">
-                <div>
-                  <p className="text-sm font-medium text-gray-600">Conversion</p>
-                  <p className="text-3xl font-bold text-gray-900 mt-2">
-                    {status.label === "Won" ? "100%" : "0%"}
-                  </p>
-                </div>
-                <div className="h-12 w-12 rounded-full bg-orange-100 flex items-center justify-center">
-                  <TrendingUp className="h-6 w-6 text-orange-600" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        </div>
-
         <div className="grid gap-6 lg:grid-cols-3">
           {/* Main Tabbed Content */}
           <div className="lg:col-span-2">
@@ -782,6 +713,12 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
                   <Plus className="h-4 w-4 mr-2" />
                   Add Activity
                 </Button>
+                <Link href={`/leads/${lead.id}/edit`} className="block">
+                  <Button variant="outline" className="w-full justify-start border-gray-300 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all">
+                    <Edit className="h-4 w-4 mr-2" />
+                    Edit Lead
+                  </Button>
+                </Link>
                 <a href={`mailto:${lead.email}`} className="block">
                   <Button variant="outline" className="w-full justify-start border-gray-300 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700 transition-all">
                     <Mail className="h-4 w-4 mr-2" />

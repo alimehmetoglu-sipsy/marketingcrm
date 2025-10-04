@@ -125,6 +125,26 @@ CREATE TABLE `lead_form_sections` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 ```
 
+#### 6. `user_assignments` - User ownership tracking
+
+```sql
+CREATE TABLE `user_assignments` (
+  `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT PRIMARY KEY,
+  `user_id` BIGINT UNSIGNED NOT NULL,
+  `entity_type` ENUM('lead', 'investor') NOT NULL,
+  `entity_id` BIGINT UNSIGNED NOT NULL,
+  `assigned_by` BIGINT UNSIGNED NOT NULL,
+  `created_at` TIMESTAMP NULL,
+  `updated_at` TIMESTAMP NULL,
+  UNIQUE INDEX `user_assignments_entity_unique` (`entity_type`, `entity_id`),
+  INDEX `user_assignments_user_id_index` (`user_id`),
+  INDEX `user_assignments_entity_index` (`entity_type`, `entity_id`),
+  INDEX `user_assignments_assigned_by_index` (`assigned_by`),
+  FOREIGN KEY (`user_id`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION,
+  FOREIGN KEY (`assigned_by`) REFERENCES `users` (`id`) ON DELETE CASCADE ON UPDATE NO ACTION
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+```
+
 ---
 
 ## 🔗 Table Relationships
@@ -137,6 +157,9 @@ CREATE TABLE `lead_form_sections` (
 | `leads` ↔ `activities` | One-to-Many | Lead has many activities |
 | `leads` ↔ `investors` | One-to-Many | Lead can be converted to investor(s) |
 | `leads` ↔ `notes` | One-to-Many | Lead has many notes |
+| `leads` ↔ `user_assignments` | One-to-One | Lead can be assigned to one user |
+| `users` ↔ `user_assignments` (assigned) | One-to-Many | User can be assigned to many leads/investors |
+| `users` ↔ `user_assignments` (assigner) | One-to-Many | User can assign many leads/investors |
 
 ### Foreign Key Constraints
 
@@ -147,6 +170,8 @@ CREATE TABLE `lead_form_sections` (
 | `lead_field_options` | `lead_field_id` | `lead_fields(id)` | CASCADE | NO ACTION |
 | `activities` | `lead_id` | `leads(id)` | CASCADE | NO ACTION |
 | `notes` | `lead_id` | `leads(id)` | CASCADE | NO ACTION |
+| `user_assignments` | `user_id` | `users(id)` | CASCADE | NO ACTION |
+| `user_assignments` | `assigned_by` | `users(id)` | CASCADE | NO ACTION |
 
 ---
 
@@ -201,11 +226,13 @@ model leads {
   lead_field_values lead_field_values[]
   notes             notes[]
 
-  @@index([status])
-  @@index([created_at])
-  @@index([representative_id])
-  @@index([created_at, status])
-  @@index([priority, status])
+  @@index([created_at], map: "idx_leads_created_at")
+  @@index([representative_id, status], map: "idx_leads_rep_status")
+  @@index([representative_id], map: "idx_leads_representative")
+  @@index([status], map: "idx_leads_status")
+  @@index([status, created_at], map: "idx_leads_status_created")
+  @@index([created_at, status], map: "leads_created_at_status_index")
+  @@index([priority, status], map: "leads_priority_status_index")
 }
 
 model lead_fields {
@@ -278,6 +305,24 @@ model lead_form_sections {
   @@index([sort_order])
 }
 
+model user_assignments {
+  id          BigInt                     @id @default(autoincrement()) @db.UnsignedBigInt
+  user_id     BigInt                     @db.UnsignedBigInt
+  entity_type user_assignments_entity_type
+  entity_id   BigInt                     @db.UnsignedBigInt
+  assigned_by BigInt                     @db.UnsignedBigInt
+  created_at  DateTime?                  @db.Timestamp(0)
+  updated_at  DateTime?                  @db.Timestamp(0)
+
+  user_assigned users @relation("UserAssignments", fields: [user_id], references: [id], onDelete: Cascade)
+  user_assigner users @relation("UserAssigner", fields: [assigned_by], references: [id], onDelete: Cascade)
+
+  @@unique([entity_type, entity_id], map: "user_assignments_entity_unique")
+  @@index([user_id], map: "user_assignments_user_id_index")
+  @@index([entity_type, entity_id], map: "user_assignments_entity_index")
+  @@index([assigned_by], map: "user_assignments_assigned_by_index")
+}
+
 enum lead_fields_type {
   text
   select
@@ -289,6 +334,11 @@ enum lead_fields_type {
   email
   url
   phone
+}
+
+enum user_assignments_entity_type {
+  lead
+  investor
 }
 ```
 

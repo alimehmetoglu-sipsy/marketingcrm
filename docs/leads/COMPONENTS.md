@@ -88,14 +88,17 @@ import { LeadFormClient } from "@/components/leads/lead-form-client"
 interface LeadsTableWithFiltersProps {
   leads: Lead[]
   leadFields: LeadField[]
+  activeUsers: User[]  // For assignment dropdown
 }
 ```
 
 **Features:**
 - Search (name, email, phone)
 - System field filters (source, status, priority)
+- **Assigned To filter** - Filter by assigned user
 - Custom field filters (select/multiselect types only)
 - Real-time client-side filtering
+- User assignment dropdown per lead row
 
 ---
 
@@ -179,8 +182,15 @@ interface LeadEditHeroProps {
 - Avatar with initials (blue gradient)
 - Status/Priority badges
 - Contact actions (email, phone)
+- **Assigned To column** - Shows assigned user with avatar
 - Row click → navigate to detail
 - Dropdown actions menu
+
+**User Assignment UI:**
+- Select dropdown in table for quick assignment
+- Shows assigned user name and email
+- "Unassigned" placeholder for leads without owner
+- Real-time assignment via PATCH API
 
 ---
 

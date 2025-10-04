@@ -848,27 +848,39 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                 <CardTitle className="text-base font-semibold text-gray-900">Quick Actions</CardTitle>
               </CardHeader>
               <CardContent className="p-4 space-y-2">
+                <Button
+                  className="w-full justify-start bg-green-500 hover:bg-green-600 text-white"
+                  onClick={() => setAddActivityOpen(true)}
+                >
+                  <Plus className="h-4 w-4 mr-2" />
+                  Add Activity
+                </Button>
                 <Link href={`/investors/${investor.id}/edit`} className="block">
                   <Button variant="outline" className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50">
                     <Edit className="h-4 w-4 mr-2" />
                     Edit Investor
                   </Button>
                 </Link>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
-                  onClick={() => setAddActivityOpen(true)}
-                >
-                  <Plus className="h-4 w-4 mr-2" />
-                  Add Activity
-                </Button>
-                <Button
-                  variant="outline"
-                  className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
-                >
-                  <MessageSquare className="h-4 w-4 mr-2" />
-                  Send Message
-                </Button>
+                <a href={`mailto:${investor.email}`}>
+                  <Button
+                    variant="outline"
+                    className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                  >
+                    <Mail className="h-4 w-4 mr-2" />
+                    Send Email
+                  </Button>
+                </a>
+                {investor.phone && (
+                  <a href={`tel:${investor.phone}`}>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
+                    >
+                      <Phone className="h-4 w-4 mr-2" />
+                      Call Investor
+                    </Button>
+                  </a>
+                )}
               </CardContent>
             </Card>
 

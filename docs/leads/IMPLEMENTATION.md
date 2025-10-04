@@ -231,11 +231,10 @@ const lead = await prisma.leads.findUnique({
 
 ### Method 1: Via UI
 
-**Step 1:** Navigate to `/leads/[id]/edit`
-
-**Step 2:** Modify fields
-
-**Step 3:** Click "Save Changes"
+**Note:** There is no dedicated edit page (`/leads/[id]/edit` does not exist). Editing is done through:
+- API calls from client components
+- Direct database updates via Prisma
+- Lead detail view interactions
 
 ---
 
@@ -651,6 +650,114 @@ const getLeadWithFullInfo = async (leadId: bigint) => {
         : fv.value
     }))
   }
+}
+```
+
+---
+
+### Pattern 7: Assign User to Lead
+
+```typescript
+const assignUserToLead = async (leadId: number, userId: number, assignedBy: number) => {
+  // Check if assignment already exists
+  const existingAssignment = await prisma.user_assignments.findFirst({
+    where: {
+      entity_type: "lead",
+      entity_id: BigInt(leadId)
+    }
+  })
+
+  if (existingAssignment) {
+    // Update existing assignment
+    await prisma.user_assignments.update({
+      where: { id: existingAssignment.id },
+      data: {
+        user_id: BigInt(userId),
+        updated_at: new Date()
+      }
+    })
+  } else {
+    // Create new assignment
+    await prisma.user_assignments.create({
+      data: {
+        user_id: BigInt(userId),
+        entity_type: "lead",
+        entity_id: BigInt(leadId),
+        assigned_by: BigInt(assignedBy),
+        created_at: new Date(),
+        updated_at: new Date()
+      }
+    })
+  }
+}
+
+// Usage via API
+const response = await fetch(`/api/leads/${leadId}`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ user_id: userId })
+})
+```
+
+---
+
+### Pattern 8: Unassign User from Lead
+
+```typescript
+const unassignUserFromLead = async (leadId: number) => {
+  await prisma.user_assignments.deleteMany({
+    where: {
+      entity_type: "lead",
+      entity_id: BigInt(leadId)
+    }
+  })
+}
+
+// Usage via API
+await fetch(`/api/leads/${leadId}`, {
+  method: 'PATCH',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ user_id: null })
+})
+```
+
+---
+
+### Pattern 9: Get Leads with Assigned Users
+
+```typescript
+const getLeadsWithAssignments = async () => {
+  const [leads, userAssignments] = await Promise.all([
+    prisma.leads.findMany({
+      orderBy: { created_at: 'desc' }
+    }),
+    prisma.user_assignments.findMany({
+      where: { entity_type: 'lead' },
+      include: {
+        user_assigned: {
+          select: { id: true, name: true, email: true }
+        }
+      }
+    })
+  ])
+
+  // Create assignment map
+  const assignmentMap = new Map(
+    userAssignments.map(a => [Number(a.entity_id), a])
+  )
+
+  // Merge data
+  return leads.map(lead => ({
+    ...lead,
+    id: Number(lead.id),
+    assignedUser: assignmentMap.get(Number(lead.id))
+      ? {
+          id: Number(assignmentMap.get(Number(lead.id))!.user_assigned.id),
+          name: assignmentMap.get(Number(lead.id))!.user_assigned.name,
+          email: assignmentMap.get(Number(lead.id))!.user_assigned.email
+        }
+      : null
+  }))
 }
 ```
 

@@ -37,6 +37,7 @@ The Leads module is a comprehensive system for managing lead relationships in th
 - ✅ **Form Section Configurator** - Organize fields into customizable sections
 - ✅ **Advanced Filtering** - Multi-dimensional filtering with custom field support
 - ✅ **Status & Priority Management** - Dynamic status and priority tracking
+- ✅ **User Assignment System** - Assign leads to team members for ownership tracking
 - ✅ **BigInt Safe Serialization** - Proper handling of MySQL BigInt types
 - ✅ **Unique Email/Phone Validation** - Prevent duplicate lead records
 - ✅ **Required Field Validation** - Server-side validation for required fields
@@ -177,10 +178,11 @@ User Action → Component → API Route → Validation → Database
 ### Frontend Files
 
 **Pages:**
-- [/app/(dashboard)/leads/page.tsx](../../app/(dashboard)/leads/page.tsx) - Lead list page
+- [/app/(dashboard)/leads/page.tsx](../../app/(dashboard)/leads/page.tsx) - Lead list page (with user assignments)
 - [/app/(dashboard)/leads/[id]/page.tsx](../../app/(dashboard)/leads/[id]/page.tsx) - Lead detail page
-- [/app/(dashboard)/leads/[id]/edit/page.tsx](../../app/(dashboard)/leads/[id]/edit/page.tsx) - Edit lead page
 - [/app/(dashboard)/leads/new/page.tsx](../../app/(dashboard)/leads/new/page.tsx) - Create lead page
+
+**Note:** There is no separate edit page route. Editing is done through the lead detail view or via API.
 
 **Components:**
 - [lead-form-client.tsx](../../components/leads/lead-form-client.tsx) - Main form component
@@ -196,7 +198,7 @@ User Action → Component → API Route → Validation → Database
 
 **API Routes:**
 - [/api/leads/route.ts](../../app/api/leads/route.ts) - GET (list), POST (create)
-- [/api/leads/[id]/route.ts](../../app/api/leads/[id]/route.ts) - GET (single), PUT (update), DELETE
+- [/api/leads/[id]/route.ts](../../app/api/leads/[id]/route.ts) - GET (single), PUT (update), PATCH (assign user), DELETE
 
 **Settings API:**
 - [/api/settings/lead-fields/**](../../app/api/settings/lead-fields/) - Field management

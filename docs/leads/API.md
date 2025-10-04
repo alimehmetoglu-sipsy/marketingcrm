@@ -26,6 +26,7 @@
 | `POST` | `/api/leads` | Create new lead | ✅ |
 | `GET` | `/api/leads/[id]` | Get single lead | ✅ |
 | `PUT` | `/api/leads/[id]` | Update lead | ✅ |
+| `PATCH` | `/api/leads/[id]` | Assign/unassign user to lead | ✅ |
 | `DELETE` | `/api/leads/[id]` | Delete lead | ✅ |
 
 ### Field Management Endpoints
@@ -56,7 +57,7 @@
 
 **Endpoint:** `GET /api/leads`
 
-**Description:** Retrieves a list of all leads with basic information.
+**Description:** Retrieves a list of all leads with basic information. **Note:** Custom field values are NOT included in this endpoint. Use the page-level data fetching or GET single lead for custom fields.
 
 **Query Parameters:**
 - None (pagination could be added in future)
@@ -83,6 +84,8 @@
   // ... more leads
 ]
 ```
+
+**Note:** For leads with custom field values and user assignments, use the page component which fetches data server-side with Prisma includes.
 
 **Error Responses:**
 
@@ -305,11 +308,91 @@
 
 ---
 
-### 5. Delete Lead
+### 5. Assign/Unassign User to Lead
+
+**Endpoint:** `PATCH /api/leads/[id]`
+
+**Description:** Assigns or unassigns a user to a lead for ownership tracking.
+
+**Path Parameters:**
+- `id` - Lead ID (number)
+
+**Request Body:**
+
+```typescript
+{
+  "user_id": 5  // User ID to assign, or null to unassign
+}
+```
+
+**Response:**
+
+```typescript
+// Status: 200 OK
+{
+  "id": 1,
+  "full_name": "John Doe",
+  "email": "john@example.com",
+  "phone": "+90 555 123 4567",
+  "source": "website",
+  "status": "new",
+  "priority": "high",
+  "created_at": "2025-01-04T10:30:00.000Z",
+  "updated_at": "2025-01-04T14:45:00.000Z",
+  "user_assignments": [
+    {
+      "id": 1,
+      "user_id": 5,
+      "entity_type": "lead",
+      "entity_id": 1,
+      "assigned_by": 1,
+      "created_at": "2025-01-04T14:45:00.000Z",
+      "user_assigned": {
+        "id": 5,
+        "name": "Jane Smith",
+        "email": "jane@example.com"
+      },
+      "user_assigner": {
+        "id": 1,
+        "name": "Admin User"
+      }
+    }
+  ]
+}
+```
+
+**Error Responses:**
+
+```typescript
+// Status: 404 Not Found - Lead
+{
+  "error": "Lead not found"
+}
+
+// Status: 404 Not Found - User
+{
+  "error": "User not found"
+}
+
+// Status: 401 Unauthorized
+{
+  "error": "Unauthorized"
+}
+
+// Status: 500 Internal Server Error
+{
+  "error": "Failed to assign user",
+  "details": "Detailed error message"
+}
+```
+
+---
+
+### 6. Delete Lead
 
 **Endpoint:** `DELETE /api/leads/[id]`
 
-**Description:** Deletes a lead and all associated data (custom field values, activities, notes).
+**Description:** Deletes a lead and all associated data (custom field values, activities, notes, user assignments).
 
 **Path Parameters:**
 - `id` - Lead ID (number)
@@ -318,6 +401,7 @@
 - All `lead_field_values` for this lead are deleted
 - All `activities` for this lead are deleted
 - All `notes` for this lead are deleted
+- All `user_assignments` for this lead are deleted
 
 **Response:**
 
