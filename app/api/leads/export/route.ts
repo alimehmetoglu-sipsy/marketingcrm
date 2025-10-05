@@ -71,8 +71,8 @@ export async function GET(request: NextRequest) {
         priority: lead.priority || "",
         assigned_to: "",
         notes_text: lead.notes_text || "",
-        created_at: lead.created_at.toISOString(),
-        updated_at: lead.updated_at.toISOString(),
+        created_at: lead.created_at ? new Date(lead.created_at).toISOString() : "",
+        updated_at: lead.updated_at ? new Date(lead.updated_at).toISOString() : "",
       };
 
       // Add dynamic field values

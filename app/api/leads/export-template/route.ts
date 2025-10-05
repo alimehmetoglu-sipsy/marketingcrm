@@ -85,9 +85,6 @@ export async function GET(request: NextRequest) {
         case "email":
           exampleValue = "example@email.com";
           break;
-        case "phone":
-          exampleValue = "+905551234567";
-          break;
         case "url":
           exampleValue = "https://example.com";
           break;

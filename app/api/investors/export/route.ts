@@ -79,8 +79,8 @@ export async function GET(request: NextRequest) {
         timeline: investor.timeline || "",
         assigned_to: "",
         notes: investor.notes || "",
-        created_at: investor.created_at.toISOString(),
-        updated_at: investor.updated_at.toISOString(),
+        created_at: investor.created_at ? new Date(investor.created_at).toISOString() : "",
+        updated_at: investor.updated_at ? new Date(investor.updated_at).toISOString() : "",
       };
 
       // Add dynamic field values

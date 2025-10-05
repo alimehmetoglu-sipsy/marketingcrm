@@ -1,0 +1,60 @@
+import { NextRequest, NextResponse } from "next/server"
+import { prisma } from "@/lib/prisma"
+import { subDays, startOfDay, format } from "date-fns"
+
+// Lead monthly/daily trends
+export async function GET(request: NextRequest) {
+  try {
+    const searchParams = request.nextUrl.searchParams
+    const days = parseInt(searchParams.get("days") || "30")
+
+    const startDate = startOfDay(subDays(new Date(), days))
+
+    // Get leads created per day with status breakdown
+    const leadsPerDay = await prisma.$queryRaw<Array<{
+      date: Date
+      status: string
+      count: bigint
+    }>>`
+      SELECT
+        DATE(created_at) as date,
+        status,
+        COUNT(*) as count
+      FROM leads
+      WHERE created_at >= ${startDate}
+      GROUP BY DATE(created_at), status
+      ORDER BY date ASC
+    `
+
+    // Transform to chart-friendly format
+    const dateMap = new Map<string, any>()
+
+    leadsPerDay.forEach((item) => {
+      const dateKey = format(new Date(item.date), "yyyy-MM-dd")
+
+      if (!dateMap.has(dateKey)) {
+        dateMap.set(dateKey, {
+          date: dateKey,
+          total: 0,
+        })
+      }
+
+      const dayData = dateMap.get(dateKey)
+      dayData[item.status] = Number(item.count)
+      dayData.total += Number(item.count)
+    })
+
+    const trendsData = Array.from(dateMap.values())
+
+    return NextResponse.json({
+      success: true,
+      data: trendsData,
+    })
+  } catch (error) {
+    console.error("Lead trends analysis error:", error)
+    return NextResponse.json(
+      { success: false, error: "Failed to fetch trends data" },
+      { status: 500 }
+    )
+  }
+}

@@ -100,6 +100,45 @@ export default async function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Analytics Dashboards */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Specialized Dashboards</CardTitle>
+          <CardDescription>Deep dive into specific analytics</CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-3 md:grid-cols-3">
+          <a href="/dashboard/leads" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-blue-500 to-cyan-500 text-white">
+              <span className="text-2xl">👥</span>
+            </div>
+            <div>
+              <p className="font-medium">Leads Dashboard</p>
+              <p className="text-xs text-muted-foreground">Conversion funnel & trends</p>
+            </div>
+          </a>
+
+          <a href="/dashboard/investors" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-emerald-500 to-teal-500 text-white">
+              <span className="text-2xl">🏢</span>
+            </div>
+            <div>
+              <p className="font-medium">Investors Dashboard</p>
+              <p className="text-xs text-muted-foreground">Portfolio & pipeline insights</p>
+            </div>
+          </a>
+
+          <a href="/dashboard/activities" className="flex items-center gap-3 rounded-lg border p-4 hover:bg-accent hover:shadow-md transition-all">
+            <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-gradient-to-br from-purple-500 to-pink-500 text-white">
+              <span className="text-2xl">⚡</span>
+            </div>
+            <div>
+              <p className="font-medium">Activities Dashboard</p>
+              <p className="text-xs text-muted-foreground">Team performance metrics</p>
+            </div>
+          </a>
+        </CardContent>
+      </Card>
     </div>
   )
 }
