@@ -1,5 +1,5 @@
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Settings2, Sliders, Bell, Shield, Database, Palette, Activity, Users, KeyRound } from "lucide-react"
+import { Settings2, Sliders, Bell, Shield, Database, Palette, Activity, Users, KeyRound, FileUp } from "lucide-react"
 import Link from "next/link"
 import { auth } from "@/lib/auth-config"
 import { canAccessSettings } from "@/lib/permissions"
@@ -20,6 +20,14 @@ const settingsPages = [
     href: "/settings/investor-fields",
     color: "from-emerald-500 to-teal-500",
     permission: "investorFields" as const,
+  },
+  {
+    title: "Import/Export",
+    description: "Import and export leads and investors data",
+    icon: FileUp,
+    href: "/settings/import-export",
+    color: "from-blue-500 to-indigo-500",
+    permission: null,
   },
   {
     title: "Activity Types",
