@@ -21,7 +21,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { MoreHorizontal, Search, Eye, Edit, Trash, Mail, Phone, Calendar, TrendingUp } from "lucide-react"
+import { MoreHorizontal, Search, Eye, Edit, Trash, Mail, Phone, Calendar, TrendingUp, MessageSquare } from "lucide-react"
 import Link from "next/link"
 import { useRouter } from "next/navigation"
 
@@ -169,15 +169,38 @@ export function LeadsTable({ leads }: { leads: Lead[] }) {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>
-                      <div className="flex flex-col gap-1.5">
-                        <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Mail className="h-3.5 w-3.5 text-gray-400" />
-                          <span>{lead.email}</span>
+                    <TableCell onClick={(e) => e.stopPropagation()}>
+                      <div className="flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-sm text-gray-900">
+                          <span className="truncate max-w-[180px]">{lead.email}</span>
                         </div>
                         <div className="flex items-center gap-2 text-sm text-gray-600">
-                          <Phone className="h-3.5 w-3.5 text-gray-400" />
                           <span>{lead.phone}</span>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <a
+                            href={`mailto:${lead.email}`}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-blue-100 transition-colors"
+                            title="Send Email"
+                          >
+                            <Mail className="h-4 w-4 text-blue-600" />
+                          </a>
+                          <a
+                            href={`tel:${lead.phone}`}
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-green-100 transition-colors"
+                            title="Call"
+                          >
+                            <Phone className="h-4 w-4 text-green-600" />
+                          </a>
+                          <a
+                            href={`https://wa.me/${lead.phone.replace(/[^0-9]/g, '')}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-full hover:bg-emerald-100 transition-colors"
+                            title="WhatsApp"
+                          >
+                            <MessageSquare className="h-4 w-4 text-emerald-600" />
+                          </a>
                         </div>
                       </div>
                     </TableCell>
