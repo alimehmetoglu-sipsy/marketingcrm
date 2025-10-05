@@ -2,8 +2,6 @@
  * CSV Utility Functions for Lead and Investor Import/Export
  */
 
-import { Prisma } from "@prisma/client";
-
 // Types
 export interface CSVField {
   name: string;

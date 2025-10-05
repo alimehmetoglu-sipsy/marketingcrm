@@ -82,14 +82,17 @@ export function PromoteInvestorDialog({
             Promote Lead to Investor
           </DialogTitle>
           <DialogDescription>
-            Convert <strong>{leadName}</strong> to an investor record. This will:
-            <ul className="list-disc list-inside mt-2 space-y-1 text-sm">
+            Convert <strong>{leadName}</strong> to an investor record.
+          </DialogDescription>
+          <div className="mt-2">
+            <p className="text-sm text-muted-foreground mb-2">This will:</p>
+            <ul className="list-disc list-inside space-y-1 text-sm text-muted-foreground">
               <li>Create a new investor with the lead's information</li>
               <li>Copy matching custom fields</li>
               <li>Create a conversion activity</li>
               <li>Mark the lead as "Won"</li>
             </ul>
-          </DialogDescription>
+          </div>
         </DialogHeader>
 
         <div className="space-y-4 py-4">
