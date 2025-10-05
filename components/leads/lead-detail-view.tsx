@@ -35,6 +35,7 @@ import { useRouter } from "next/navigation"
 import { toast } from "sonner"
 import { DeleteLeadDialog } from "./delete-lead-dialog"
 import { AddActivityDialog } from "@/components/activities/add-activity-dialog"
+import { PromoteInvestorDialog } from "./promote-investor-dialog"
 import {
   Select,
   SelectContent,
@@ -162,6 +163,7 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
   const [deleteOpen, setDeleteOpen] = useState(false)
   const [addActivityOpen, setAddActivityOpen] = useState(false)
   const [assignDialogOpen, setAssignDialogOpen] = useState(false)
+  const [promoteDialogOpen, setPromoteDialogOpen] = useState(false)
   const [selectedUserId, setSelectedUserId] = useState<string>("")
   const [assigning, setAssigning] = useState(false)
 
@@ -613,12 +615,14 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
                             email: "bg-purple-500",
                             meeting: "bg-green-500",
                             note: "bg-orange-500",
+                            converted: "bg-emerald-500",
                           }
                           const activityIcons: Record<string, any> = {
                             call: Phone,
                             email: Mail,
                             meeting: Calendar,
                             note: MessageSquare,
+                            converted: TrendingUp,
                           }
                           const Icon = activityIcons[activity.type] || MessageSquare
                           const color = activityType?.color || activityTypeColors[activity.type] || "bg-gray-500"
@@ -712,6 +716,14 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Activity
+                </Button>
+                <Button
+                  variant="default"
+                  className="w-full justify-start bg-gradient-to-r from-green-600 to-emerald-600 hover:from-green-700 hover:to-emerald-700 shadow-md"
+                  onClick={() => setPromoteDialogOpen(true)}
+                >
+                  <TrendingUp className="h-4 w-4 mr-2" />
+                  Promote as Investor
                 </Button>
                 <Link href={`/leads/${lead.id}/edit`} className="block">
                   <Button variant="outline" className="w-full justify-start border-gray-300 hover:bg-purple-50 hover:border-purple-300 hover:text-purple-700 transition-all">
@@ -945,6 +957,14 @@ export function LeadDetailView({ lead }: LeadDetailProps) {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Promote to Investor Dialog */}
+      <PromoteInvestorDialog
+        open={promoteDialogOpen}
+        onOpenChange={setPromoteDialogOpen}
+        leadId={lead.id}
+        leadName={lead.full_name}
+      />
     </>
   )
 }
