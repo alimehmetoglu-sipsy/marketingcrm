@@ -847,7 +847,7 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
               <CardHeader className="bg-gradient-to-r from-emerald-50 to-teal-50 border-b border-gray-200">
                 <CardTitle className="text-base font-semibold text-gray-900">Quick Actions</CardTitle>
               </CardHeader>
-              <CardContent className="p-4 space-y-2">
+              <CardContent className="p-4 space-y-3">
                 <Button
                   className="w-full justify-start bg-green-500 hover:bg-green-600 text-white"
                   onClick={() => setAddActivityOpen(true)}
@@ -861,7 +861,7 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                     Edit Investor
                   </Button>
                 </Link>
-                <a href={`mailto:${investor.email}`}>
+                <a href={`mailto:${investor.email}`} className="block">
                   <Button
                     variant="outline"
                     className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
@@ -871,7 +871,7 @@ export function InvestorDetailView({ investor }: InvestorDetailProps) {
                   </Button>
                 </a>
                 {investor.phone && (
-                  <a href={`tel:${investor.phone}`}>
+                  <a href={`tel:${investor.phone}`} className="block">
                     <Button
                       variant="outline"
                       className="w-full justify-start border-gray-200 hover:border-emerald-300 hover:bg-emerald-50"
