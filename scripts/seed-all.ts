@@ -4,17 +4,58 @@ import bcrypt from 'bcryptjs'
 const prisma = new PrismaClient()
 
 async function seedUsers() {
-  console.log('\n📝 Checking/Creating users...')
+  console.log('\n📝 Checking/Creating admin role and user...')
 
+  // Create or get admin role
+  let adminRole = await prisma.roles.findUnique({
+    where: { slug: 'admin' },
+  })
+
+  if (!adminRole) {
+    adminRole = await prisma.roles.create({
+      data: {
+        name: 'Administrator',
+        slug: 'admin',
+        description: 'Full system access',
+        permissions: {
+          leads: { view: true, create: true, edit: true, delete: true },
+          investors: { view: true, create: true, edit: true, delete: true },
+          activities: { view: true, create: true, edit: true, delete: true },
+          reports: { view: true, create: true, edit: true, delete: true },
+          settings: { view: true, create: true, edit: true, delete: true },
+          users: { view: true, create: true, edit: true, delete: true },
+        },
+        is_system: true,
+        status: 'active',
+        created_at: new Date(),
+        updated_at: new Date(),
+      },
+    })
+    console.log('✅ Admin role created')
+  } else {
+    console.log('✅ Admin role already exists')
+  }
+
+  // Check if admin user exists
   const existingUser = await prisma.users.findUnique({
     where: { email: 'admin@example.com' },
   })
 
   if (existingUser) {
-    console.log('✅ Admin user already exists: admin@example.com')
+    // Update existing user with role if needed
+    if (!existingUser.role_id) {
+      await prisma.users.update({
+        where: { id: existingUser.id },
+        data: { role_id: adminRole.id },
+      })
+      console.log('✅ Admin user updated with role: admin@example.com')
+    } else {
+      console.log('✅ Admin user already exists: admin@example.com')
+    }
     return
   }
 
+  // Create new admin user
   const hashedPassword = await bcrypt.hash('password', 10)
 
   await prisma.users.create({
@@ -22,6 +63,7 @@ async function seedUsers() {
       name: 'Admin User',
       email: 'admin@example.com',
       password: hashedPassword,
+      role_id: adminRole.id,
       status: 'active',
       created_at: new Date(),
       updated_at: new Date(),
@@ -401,11 +443,15 @@ async function main() {
   console.log('\n' + '='.repeat(60))
   console.log('\n🎉 All seeds completed successfully!')
   console.log('\n📋 Summary:')
-  console.log('  ✅ User: admin@example.com / password')
+  console.log('  ✅ Admin Role: Administrator (full system access)')
+  console.log('  ✅ Admin User: admin@example.com / password')
   console.log('  ✅ Lead form sections')
   console.log('  ✅ Lead system fields (source, status, priority)')
   console.log('  ✅ Investor form sections')
   console.log('  ✅ Investor system fields (source, status, priority)')
+  console.log('\n💡 You can now login at http://localhost:3000/login')
+  console.log('   Email: admin@example.com')
+  console.log('   Password: password')
   console.log('\n')
 }
 
