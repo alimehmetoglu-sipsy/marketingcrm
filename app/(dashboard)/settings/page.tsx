@@ -1,5 +1,5 @@
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Settings2, Sliders, Bell, Shield, Database, Palette, Activity, Users, KeyRound, FileUp } from "lucide-react"
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Settings2, Sliders, Bell, Database, Palette, Activity, Users, KeyRound, FileUp } from "lucide-react"
 import Link from "next/link"
 import { auth } from "@/lib/auth-config"
 import { canAccessSettings } from "@/lib/permissions"
@@ -67,14 +67,6 @@ const settingsPages = [
     icon: Bell,
     href: "/settings/notifications",
     color: "from-orange-500 to-red-500",
-    permission: null,
-  },
-  {
-    title: "Security",
-    description: "Security and privacy settings",
-    icon: Shield,
-    href: "/settings/security",
-    color: "from-pink-500 to-rose-500",
     permission: null,
   },
   {

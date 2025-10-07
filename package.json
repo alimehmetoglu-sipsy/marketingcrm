@@ -7,7 +7,13 @@
     "build": "next build --turbopack",
     "start": "next start",
     "lint": "eslint",
-    "seed:all": "npx tsx scripts/seed-all.ts"
+    "seed:all": "npx tsx scripts/seed-all.ts",
+    "setup:fresh": "npx prisma generate && npx prisma db push && npm run seed:all",
+    "setup:validate": "npx tsx scripts/validate-setup.ts",
+    "db:reset": "npx prisma db push --force-reset && npm run seed:all",
+    "docker:up": "docker compose up -d",
+    "docker:down": "docker compose down",
+    "docker:logs": "docker logs crm_mysql"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",
