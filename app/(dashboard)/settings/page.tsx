@@ -1,5 +1,5 @@
 import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Settings2, Sliders, Bell, Database, Palette, Activity, Users, KeyRound, FileUp } from "lucide-react"
+import { Sliders, Database, Activity, Users, KeyRound, FileUp } from "lucide-react"
 import Link from "next/link"
 import { auth } from "@/lib/auth-config"
 import { canAccessSettings } from "@/lib/permissions"
@@ -52,30 +52,6 @@ const settingsPages = [
     href: "/settings/roles",
     color: "from-purple-500 to-pink-500",
     permission: "roles" as const,
-  },
-  {
-    title: "General Settings",
-    description: "Configure general application settings",
-    icon: Settings2,
-    href: "/settings/general",
-    color: "from-blue-500 to-cyan-500",
-    permission: null,
-  },
-  {
-    title: "Notifications",
-    description: "Manage notification preferences",
-    icon: Bell,
-    href: "/settings/notifications",
-    color: "from-orange-500 to-red-500",
-    permission: null,
-  },
-  {
-    title: "Appearance",
-    description: "Customize the look and feel",
-    icon: Palette,
-    href: "/settings/appearance",
-    color: "from-violet-500 to-purple-500",
-    permission: null,
   },
 ]
 
