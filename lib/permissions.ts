@@ -30,9 +30,11 @@ export function checkMenuPermission(
   menu: string
 ): boolean {
   if (!permissions) return false
+  if (!permissions.menus) return false
 
   // Handle nested settings menus
   if (menu.startsWith("settings.")) {
+    if (!permissions.menus.settings) return false
     const settingKey = menu.split(".")[1] as keyof typeof permissions.menus.settings
     return permissions.menus.settings[settingKey] || false
   }
@@ -41,6 +43,7 @@ export function checkMenuPermission(
   const menuKey = menu as keyof typeof permissions.menus
   if (menuKey === "settings") {
     // Access to settings if any sub-menu is accessible
+    if (!permissions.menus.settings) return false
     return Object.values(permissions.menus.settings).some((v) => v === true)
   }
 
@@ -55,6 +58,7 @@ export function checkDataAccess(
   entity: "leads" | "investors" | "activities"
 ): "all" | "assigned" | "none" {
   if (!permissions) return "none"
+  if (!permissions.dataAccess) return "none"
   return permissions.dataAccess[entity] || "none"
 }
 
@@ -66,6 +70,8 @@ export function canAccessSettings(
   settingsPage: keyof PermissionsStructure["menus"]["settings"]
 ): boolean {
   if (!permissions) return false
+  if (!permissions.menus) return false
+  if (!permissions.menus.settings) return false
   return permissions.menus.settings[settingsPage] || false
 }
 
@@ -76,6 +82,8 @@ export function hasAnySettingsPermission(
   permissions: PermissionsStructure | null | undefined
 ): boolean {
   if (!permissions) return false
+  if (!permissions.menus) return false
+  if (!permissions.menus.settings) return false
   return Object.values(permissions.menus.settings).some((v) => v === true)
 }
 
@@ -86,6 +94,7 @@ export function getAccessibleMenus(
   permissions: PermissionsStructure | null | undefined
 ): string[] {
   if (!permissions) return []
+  if (!permissions.menus) return []
 
   const menus: string[] = []
 
@@ -112,6 +121,8 @@ export function getAccessibleSettingsMenus(
   permissions: PermissionsStructure | null | undefined
 ): string[] {
   if (!permissions) return []
+  if (!permissions.menus) return []
+  if (!permissions.menus.settings) return []
 
   const settingsMenus: string[] = []
 
@@ -129,6 +140,9 @@ export function getAccessibleSettingsMenus(
  */
 export function isAdmin(permissions: PermissionsStructure | null | undefined): boolean {
   if (!permissions) return false
+  if (!permissions.menus) return false
+  if (!permissions.menus.settings) return false
+  if (!permissions.dataAccess) return false
 
   const allMenus = [
     permissions.menus.dashboard,
